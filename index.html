@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>London 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --serif: 'Instrument Serif', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --gold: #c9a96e;
+    --gold-dim: rgba(201,169,110,0.7);
+    --white: #ffffff;
+    --fog: rgba(255,255,255,0.08);
+    --fog-strong: rgba(8,8,12,0.52);
+    --border: rgba(255,255,255,0.11);
+    --muted: rgba(255,255,255,0.48);
+  }
+
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0c10; }
+  #map { position: absolute; inset: 0; }
+
+  /* LOADER */
+  #loader {
+    position: fixed; inset: 0; background: #08090d; z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.9s ease;
+  }
+  #loader.out { opacity: 0; pointer-events: none; }
+  .ld-pre { font-family: var(--sans); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+  .ld-title { font-family: var(--serif); font-size: 52px; color: var(--white); letter-spacing: -0.02em; line-height: 1; margin-bottom: 4px; }
+  .ld-title em { font-style: italic; color: var(--gold); }
+  .ld-sub { font-family: var(--sans); font-size: 12px; font-weight: 300; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 44px; }
+  .ld-track { width: 180px; height: 1px; background: rgba(255,255,255,0.1); position: relative; overflow: hidden; }
+  .ld-fill { position: absolute; inset: 0 100% 0 0; background: var(--gold); transition: right 0.35s ease; }
+
+  /* TOP BAR */
+  .top-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 30px; z-index: 10; pointer-events: none;
+  }
+  .logo { font-family: var(--serif); font-size: 20px; color: var(--white); letter-spacing: -0.01em; text-shadow: 0 1px 16px rgba(0,0,0,0.6); user-select: none; }
+  .logo em { font-style: italic; color: var(--gold); }
+
+  .nav {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--fog-strong); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 0.5px solid var(--border); border-radius: 100px; padding: 5px; pointer-events: all;
+  }
+  .nav-btn {
+    font-family: var(--sans); font-size: 11.5px; font-weight: 400; letter-spacing: 0.04em;
+    color: var(--muted); background: transparent; border: none; border-radius: 100px;
+    padding: 7px 15px; cursor: pointer; transition: color 0.18s, background 0.18s; white-space: nowrap;
+  }
+  .nav-btn:hover { color: var(--white); background: rgba(255,255,255,0.07); }
+  .nav-btn.on { color: #0e0c08; background: var(--gold); font-weight: 500; }
+
+  /* HERO */
+  .hero { position: absolute; bottom: 108px; left: 36px; z-index: 10; pointer-events: none; }
+  .hero-tag { font-family: var(--sans); font-size: 10.5px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 10px; transition: opacity 0.35s; }
+  .hero-h { font-family: var(--serif); font-size: clamp(46px, 5.5vw, 76px); line-height: 0.94; color: var(--white); letter-spacing: -0.025em; text-shadow: 0 2px 28px rgba(0,0,0,0.45); transition: opacity 0.35s; }
+  .hero-h em { font-style: italic; color: var(--gold); }
+  .hero-p { font-family: var(--sans); font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.65; margin-top: 14px; max-width: 300px; transition: opacity 0.35s; }
+  .fade { opacity: 0; }
+
+  /* CONTROLS */
+  .ctrl-row { position: absolute; bottom: 28px; left: 36px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10; }
+  .ctrl-btn {
+    font-family: var(--sans); font-size: 11px; font-weight: 400; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--white); background: var(--fog-strong);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 0.5px solid var(--border); border-radius: 100px; padding: 9px 18px;
+    cursor: pointer; transition: background 0.18s, border-color 0.18s, color 0.18s;
+  }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.22); }
+  .ctrl-btn.on { background: var(--gold); border-color: var(--gold); color: #0e0c08; font-weight: 500; }
+
+  /* INFO CARD */
+  .info {
+    position: absolute; top: 76px; right: 28px; width: 210px;
+    background: var(--fog-strong); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+    border: 0.5px solid var(--border); border-radius: 16px; padding: 18px 18px 16px;
+    z-index: 10; pointer-events: none; opacity: 0; transform: translateY(-6px); transition: opacity 0.35s, transform 0.35s;
+  }
+  .info.show { opacity: 1; transform: translateY(0); }
+  .info-row { margin-bottom: 12px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-lbl { font-family: var(--sans); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .info-val { font-family: var(--serif); font-size: 18px; color: var(--white); line-height: 1.15; }
+  .info-div { height: 0.5px; background: var(--border); margin: 12px 0; }
+
+  /* COMPASS */
+  .compass { position: absolute; bottom: 34px; right: 32px; width: 36px; height: 36px; z-index: 10; pointer-events: none; }
+  .compass svg { width: 100%; height: 100%; }
+
+  /* MOBILE */
+  @media (max-width: 580px) {
+    .top-bar { padding: 14px 16px; }
+    .nav-btn { padding: 6px 10px; font-size: 10px; }
+    .hero { bottom: 130px; left: 20px; }
+    .ctrl-row { left: 20px; bottom: 24px; }
+    .info { right: 14px; top: 70px; width: 176px; }
+    .compass { right: 18px; bottom: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="ld-pre">Open Source · OSM Data · No API Key</div>
+  <div class="ld-title">London <em>3D</em></div>
+  <div class="ld-sub">Loading city tiles…</div>
+  <div class="ld-track"><div class="ld-fill" id="ld-fill"></div></div>
+</div>
+
+<div id="map"></div>
+
+<div class="top-bar">
+  <div class="logo">London <em>3D</em></div>
+  <nav class="nav" id="nav">
+    <button class="nav-btn on" data-view="overview">Overview</button>
+    <button class="nav-btn" data-view="city">The City</button>
+    <button class="nav-btn" data-view="southbank">South Bank</button>
+    <button class="nav-btn" data-view="canary">Canary Wharf</button>
+  </nav>
+</div>
+
+<div class="hero">
+  <div class="hero-tag" id="hero-tag">51.5074° N · 0.1278° W</div>
+  <div class="hero-h" id="hero-h">The<br><em>Capital</em></div>
+  <div class="hero-p" id="hero-p">An open-source 3D exploration of London's skyline — powered entirely by OpenStreetMap data, free forever.</div>
+</div>
+
+<div class="ctrl-row">
+  <button class="ctrl-btn on" id="btn-3d" onclick="toggle3D(this)">3D Buildings</button>
+  <button class="ctrl-btn" id="btn-spin" onclick="toggleSpin(this)">Auto Rotate</button>
+  <button class="ctrl-btn" id="btn-theme" onclick="toggleTheme(this)">Light Mode</button>
+</div>
+
+<div class="info" id="info">
+  <div class="info-row">
+    <div class="info-lbl">Viewing</div>
+    <div class="info-val" id="i-name">London Overview</div>
+  </div>
+  <div class="info-div"></div>
+  <div class="info-row">
+    <div class="info-lbl">Altitude</div>
+    <div class="info-val" id="i-alt">2,100 m</div>
+  </div>
+  <div class="info-row">
+    <div class="info-lbl">Bearing</div>
+    <div class="info-val" id="i-bear">N 0°</div>
+  </div>
+</div>
+
+<div class="compass">
+  <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="18" cy="18" r="16.5" stroke="rgba(255,255,255,0.18)" stroke-width="0.75"/>
+    <g id="needle" style="transform-origin:18px 18px">
+      <polygon points="18,3 20.2,18 18,15.5 15.8,18" fill="white"/>
+      <polygon points="18,33 20.2,18 18,20.5 15.8,18" fill="rgba(255,255,255,0.28)"/>
+    </g>
+    <text x="18" y="11.5" text-anchor="middle" fill="white" font-family="DM Sans,sans-serif" font-size="6" font-weight="500">N</text>
+  </svg>
+</div>
+
+<script>
+const VIEWS = {
+  overview:  { center:[-0.098,51.508],  zoom:13.2, pitch:52, bearing:-18, name:'London Overview',    alt:'2,100 m', tag:'51.5074° N · 0.1278° W', h:['The','<em>Capital</em>'],     p:"An open-source 3D exploration of London's skyline — powered entirely by OpenStreetMap." },
+  city:      { center:[-0.091,51.515],  zoom:15.2, pitch:64, bearing:28,  name:'The City of London', alt:'380 m',   tag:'Financial District',       h:['The','<em>Square Mile</em>'], p:"The Gherkin, the Walkie-Talkie, Lloyd's — a square mile that moves trillions every day." },
+  southbank: { center:[-0.119,51.506],  zoom:14.8, pitch:58, bearing:-55, name:'South Bank',         alt:'440 m',   tag:'Cultural Quarter',         h:['South','<em>Bank</em>'],      p:"Tate Modern, the London Eye, the Globe — culture on the great curve of the Thames." },
+  canary:    { center:[-0.019,51.505],  zoom:15.3, pitch:63, bearing:12,  name:'Canary Wharf',       alt:'340 m',   tag:'Docklands',                h:['Canary','<em>Wharf</em>'],    p:"Glass towers rising from the old West India Docks — London's second skyline." },
+};
+
+const STYLE_DARK  = 'https://tiles.openfreemap.org/styles/dark';
+const STYLE_LIGHT = 'https://tiles.openfreemap.org/styles/liberty';
+
+let currentView = 'overview';
+let show3D = true, spinning = false, darkMode = true, spinRaf = null;
+
+const v0 = VIEWS.overview;
+const map = new maplibregl.Map({
+  container: 'map',
+  style: STYLE_DARK,
+  center: v0.center, zoom: v0.zoom, pitch: v0.pitch, bearing: v0.bearing,
+  antialias: true,
+  attributionControl: { compact: true }
+});
+
+// Loader
+const fill = document.getElementById('ld-fill');
+const loader = document.getElementById('loader');
+let pct = 0;
+const t = setInterval(() => {
+  pct = Math.min(pct + Math.random() * 13, 86);
+  fill.style.right = (100 - pct) + '%';
+}, 220);
+
+map.on('load', () => {
+  clearInterval(t);
+  fill.style.right = '0%';
+  add3DLayer();
+  setTimeout(() => {
+    loader.classList.add('out');
+    setTimeout(() => loader.remove(), 960);
+    document.getElementById('info').classList.add('show');
+  }, 500);
+});
+
+// 3D buildings — height-based colour ramp
+function getBuildingPaint(isDark) {
+  const colors = isDark
+    ? [0,'#1a1d24', 20,'#22263a', 60,'#2c3050', 120,'#3a3f6a', 200,'#4e568a']
+    : [0,'#dde0e8', 20,'#cfd3dc', 60,'#bbc1cc', 120,'#a4acbc', 200,'#8a95a8'];
+  return {
+    'fill-extrusion-color': ['interpolate',['linear'],['coalesce',['get','render_height'],['get','height'],8], ...colors],
+    'fill-extrusion-height': ['interpolate',['linear'],['zoom'], 13,0, 14,['coalesce',['get','render_height'],['get','height'],8]],
+    'fill-extrusion-base':   ['interpolate',['linear'],['zoom'], 13,0, 14,['coalesce',['get','render_min_height'],['get','min_height'],0]],
+    'fill-extrusion-opacity': isDark ? 0.88 : 0.8
+  };
+}
+
+function add3DLayer() {
+  if (map.getLayer('3d-buildings')) return;
+  const sources = map.getStyle().sources;
+  const srcId = Object.keys(sources).find(k => k.includes('openmaptiles') || k.includes('openfreemap')) || Object.keys(sources)[0];
+  map.addLayer({ id:'3d-buildings', source:srcId, 'source-layer':'building', type:'fill-extrusion', minzoom:13, paint: getBuildingPaint(darkMode) });
+}
+
+// Compass + bearing display
+map.on('move', () => {
+  const b = Math.round(map.getBearing());
+  document.getElementById('needle').style.transform = `rotate(${-b}deg)`;
+  const dir = b === 0 ? 'N' : b > 0 ? 'E' : 'W';
+  document.getElementById('i-bear').textContent = `${dir} ${Math.abs(b)}°`;
+});
+
+// Nav
+document.getElementById('nav').addEventListener('click', e => {
+  const btn = e.target.closest('.nav-btn');
+  if (!btn) return;
+  const key = btn.dataset.view;
+  if (!key || key === currentView) return;
+  currentView = key;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  const vd = VIEWS[key];
+  map.flyTo({ center:vd.center, zoom:vd.zoom, pitch:vd.pitch, bearing:vd.bearing, duration:2600, essential:true, curve:1.15 });
+  const els = ['hero-tag','hero-h','hero-p'];
+  els.forEach(id => document.getElementById(id).classList.add('fade'));
+  setTimeout(() => {
+    document.getElementById('hero-tag').textContent = vd.tag;
+    document.getElementById('hero-h').innerHTML     = vd.h.join('<br>');
+    document.getElementById('hero-p').textContent   = vd.p;
+    document.getElementById('i-name').textContent   = vd.name;
+    document.getElementById('i-alt').textContent    = vd.alt;
+    els.forEach(id => document.getElementById(id).classList.remove('fade'));
+  }, 300);
+});
+
+function toggle3D(btn) {
+  show3D = !show3D;
+  btn.classList.toggle('on', show3D);
+  if (map.getLayer('3d-buildings'))
+    map.setLayoutProperty('3d-buildings', 'visibility', show3D ? 'visible' : 'none');
+}
+
+function toggleSpin(btn) {
+  spinning = !spinning;
+  btn.classList.toggle('on', spinning);
+  btn.textContent = spinning ? 'Stop Rotate' : 'Auto Rotate';
+  spinning ? doSpin() : cancelAnimationFrame(spinRaf);
+}
+function doSpin() {
+  if (!spinning) return;
+  map.setBearing(map.getBearing() + 0.1);
+  spinRaf = requestAnimationFrame(doSpin);
+}
+
+function toggleTheme(btn) {
+  darkMode = !darkMode;
+  btn.textContent = darkMode ? 'Light Mode' : 'Dark Mode';
+  map.setStyle(darkMode ? STYLE_DARK : STYLE_LIGHT);
+  map.once('styledata', () => { if (show3D) add3DLayer(); });
+}
+</script>
+</body>
+</html>
