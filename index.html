@@ -101,6 +101,212 @@
   .compass { position: absolute; bottom: 34px; right: 32px; width: 36px; height: 36px; z-index: 10; pointer-events: none; }
   .compass svg { width: 100%; height: 100%; }
 
+  /* ── TUBE LINE COLOURS ── */
+  .lc-bakerloo    { background:#B36305; }
+  .lc-central     { background:#E32017; }
+  .lc-circle      { background:#FFD300; }
+  .lc-district    { background:#00782A; }
+  .lc-hammersmith { background:#F3A9BB; }
+  .lc-jubilee     { background:#A0A5A9; }
+  .lc-metropolitan{ background:#9B0056; }
+  .lc-northern    { background:#000000; }
+  .lc-piccadilly  { background:#003688; }
+  .lc-victoria    { background:#0098D4; }
+  .lc-waterloo    { background:#95CDBA; }
+  .lc-elizabeth   { background:#6950A1; }
+  .lc-dlr         { background:#00A4A7; }
+  .lc-overground  { background:#EE7C0E; }
+
+  /* ── STATION MARKER ── */
+  .tube-marker {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.9);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+  }
+  .tube-marker:hover { transform: scale(1.6); box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
+
+  /* ── ARRIVALS PANEL ── */
+  .panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(8,9,14,0.96);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border-top: 0.5px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 env(safe-area-inset-bottom);
+    z-index: 50;
+    transform: translateY(100%);
+    transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
+    max-height: 52vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .panel.open { transform: translateY(0); }
+
+  .panel-handle {
+    width: 36px; height: 4px; background: rgba(255,255,255,0.2);
+    border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px 10px; flex-shrink: 0;
+  }
+  .panel-title {
+    font-family: var(--serif); font-size: 20px; color: var(--white); line-height: 1;
+  }
+  .panel-title span { font-style: italic; color: var(--gold); }
+  .panel-close {
+    width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid var(--border);
+    background: rgba(255,255,255,0.07); color: var(--muted); font-size: 16px; line-height: 28px;
+    text-align: center; cursor: pointer; flex-shrink: 0;
+  }
+  .panel-close:hover { background: rgba(255,255,255,0.14); color: var(--white); }
+
+  .panel-body { overflow-y: auto; padding: 0 20px 20px; flex: 1; min-height: 0; }
+
+  .arrival-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 0; border-bottom: 0.5px solid rgba(255,255,255,0.07);
+  }
+  .arrival-row:last-child { border-bottom: none; }
+  .arrival-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .arrival-dest {
+    font-family: var(--sans); font-size: 13px; color: var(--white); flex: 1;
+  }
+  .arrival-dest small {
+    display: block; font-size: 10.5px; color: var(--muted); margin-top: 1px; letter-spacing: 0.02em;
+  }
+  .arrival-time {
+    font-family: var(--serif); font-size: 17px; color: var(--gold); white-space: nowrap;
+  }
+  .arrival-loading {
+    font-family: var(--sans); font-size: 12px; color: var(--muted);
+    padding: 20px 0; text-align: center; letter-spacing: 0.06em;
+  }
+
+  /* ── LINE STATUS STRIP ── */
+  .line-strip {
+    display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 20px 10px; flex-shrink: 0;
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
+  }
+  .line-pill {
+    font-family: var(--sans); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.06em; padding: 5px 11px; border-radius: 100px;
+    cursor: pointer; transition: opacity 0.15s, box-shadow 0.15s; text-transform: capitalize;
+    color: white; opacity: 0.6; border: 1.5px solid transparent;
+  }
+  .line-pill:hover { opacity: 1; }
+  .line-pill.active {
+    opacity: 1;
+    border-color: rgba(255,255,255,0.7);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+  }
+
+  /* ── JOURNEY PLANNER PANEL ── */
+  .jp-panel {
+    position: absolute; top: 72px; left: 50%; transform: translateX(-50%) translateY(-12px);
+    width: min(460px, calc(100vw - 32px));
+    background: rgba(8,9,14,0.96);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 0.5px solid var(--border); border-radius: 16px;
+    z-index: 50; opacity: 0; pointer-events: none;
+    transition: opacity 0.28s, transform 0.28s;
+  }
+  .jp-panel.open { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+
+  .jp-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px 12px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
+  }
+  .jp-title { font-family: var(--serif); font-size: 18px; color: var(--white); }
+  .jp-title em { font-style: italic; color: var(--gold); }
+
+  .jp-fields { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+
+  .jp-input-wrap { position: relative; }
+  .jp-input-wrap label {
+    display: block; font-family: var(--sans); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+  }
+  .jp-input {
+    width: 100%; background: rgba(255,255,255,0.06); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-family: var(--sans); font-size: 13px;
+    color: var(--white); outline: none; transition: border-color 0.15s;
+  }
+  .jp-input:focus { border-color: rgba(201,169,110,0.5); }
+  .jp-input::placeholder { color: rgba(255,255,255,0.25); }
+
+  .jp-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  .jp-select {
+    width: 100%; background: rgba(255,255,255,0.06); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-family: var(--sans); font-size: 13px;
+    color: var(--white); outline: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .jp-select option { background: #12141a; color: white; }
+
+  .jp-search-btn {
+    width: 100%; margin-top: 4px; padding: 11px;
+    background: var(--gold); border: none; border-radius: 8px;
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase; color: #0e0c08;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .jp-search-btn:hover { opacity: 0.88; }
+  .jp-search-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .jp-results { padding: 0 18px 18px; max-height: 280px; overflow-y: auto; }
+
+  .jp-route {
+    border: 0.5px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .jp-route:hover { border-color: rgba(201,169,110,0.4); background: rgba(255,255,255,0.03); }
+  .jp-route:last-child { margin-bottom: 0; }
+
+  .jp-route-top {
+    display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;
+  }
+  .jp-route-dur {
+    font-family: var(--serif); font-size: 20px; color: var(--white);
+  }
+  .jp-route-dep {
+    font-family: var(--sans); font-size: 11px; color: var(--muted);
+  }
+  .jp-route-legs {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .jp-leg {
+    font-family: var(--sans); font-size: 10px; font-weight: 500;
+    padding: 3px 8px; border-radius: 100px; color: white; letter-spacing: 0.04em;
+  }
+  .jp-leg-walk {
+    font-family: var(--sans); font-size: 10px; color: var(--muted);
+    padding: 0 2px;
+  }
+  .jp-empty {
+    font-family: var(--sans); font-size: 12px; color: var(--muted);
+    text-align: center; padding: 20px 0; letter-spacing: 0.04em;
+  }
+
+  /* autocomplete dropdown */
+  .jp-suggest {
+    position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+    background: #12141a; border: 0.5px solid var(--border); border-radius: 8px;
+    z-index: 100; overflow: hidden; max-height: 180px; overflow-y: auto;
+  }
+  .jp-suggest-item {
+    padding: 9px 12px; font-family: var(--sans); font-size: 13px; color: var(--white);
+    cursor: pointer; transition: background 0.12s;
+  }
+  .jp-suggest-item:hover { background: rgba(255,255,255,0.07); }
+
   /* MOBILE */
   @media (max-width: 580px) {
     .top-bar { padding: 14px 16px; }
@@ -142,6 +348,8 @@
 <div class="ctrl-row">
   <button class="ctrl-btn on" id="btn-3d" onclick="toggle3D(this)">3D Buildings</button>
   <button class="ctrl-btn" id="btn-spin" onclick="toggleSpin(this)">Auto Rotate</button>
+  <button class="ctrl-btn" id="btn-tube" onclick="toggleTube(this)">Tube Stations</button>
+  <button class="ctrl-btn" id="btn-jp" onclick="toggleJP(this)">Journey Planner</button>
   <button class="ctrl-btn" id="btn-theme" onclick="toggleTheme(this)">Light Mode</button>
 </div>
 
@@ -170,6 +378,59 @@
     </g>
     <text x="18" y="11.5" text-anchor="middle" fill="white" font-family="DM Sans,sans-serif" font-size="6" font-weight="500">N</text>
   </svg>
+</div>
+
+<!-- ARRIVALS PANEL -->
+<div class="panel" id="arrivals-panel">
+  <div class="panel-handle"></div>
+  <div class="panel-head">
+    <div class="panel-title" id="panel-station-name">Station <span>Arrivals</span></div>
+    <div class="panel-close" onclick="closeArrivals()">×</div>
+  </div>
+  <div class="line-strip" id="panel-lines"></div>
+  <div class="panel-body">
+    <div class="arrival-loading" id="arrivals-loading">Loading live arrivals…</div>
+    <div id="arrivals-list"></div>
+  </div>
+</div>
+
+<!-- JOURNEY PLANNER PANEL -->
+<div class="jp-panel" id="jp-panel">
+  <div class="jp-head">
+    <div class="jp-title">Journey <em>Planner</em></div>
+    <div class="panel-close" onclick="toggleJP(document.getElementById('btn-jp'))">×</div>
+  </div>
+  <div class="jp-fields">
+    <div class="jp-input-wrap">
+      <label>From</label>
+      <input class="jp-input" id="jp-from" placeholder="e.g. King's Cross" autocomplete="off">
+      <div class="jp-suggest" id="jp-from-suggest" style="display:none"></div>
+    </div>
+    <div class="jp-input-wrap">
+      <label>To</label>
+      <input class="jp-input" id="jp-to" placeholder="e.g. Canary Wharf" autocomplete="off">
+      <div class="jp-suggest" id="jp-to-suggest" style="display:none"></div>
+    </div>
+    <div class="jp-row">
+      <div class="jp-input-wrap">
+        <label>Date</label>
+        <input class="jp-input" id="jp-date" type="date">
+      </div>
+      <div class="jp-input-wrap">
+        <label>Time</label>
+        <input class="jp-input" id="jp-time" type="time">
+      </div>
+      <div class="jp-input-wrap">
+        <label>Type</label>
+        <select class="jp-select" id="jp-type">
+          <option value="Departing">Departing</option>
+          <option value="Arriving">Arriving</option>
+        </select>
+      </div>
+    </div>
+    <button class="jp-search-btn" id="jp-go" onclick="planJourney()">Find Routes</button>
+  </div>
+  <div class="jp-results" id="jp-results"></div>
 </div>
 
 <script>
@@ -289,7 +550,756 @@ function toggleTheme(btn) {
   darkMode = !darkMode;
   btn.textContent = darkMode ? 'Light Mode' : 'Dark Mode';
   map.setStyle(darkMode ? STYLE_DARK : STYLE_LIGHT);
-  map.once('styledata', () => { if (show3D) add3DLayer(); });
+  map.once('styledata', () => {
+    if (show3D) add3DLayer();
+    if (tubeVisible) {
+      // Re-add markers; lines need re-adding since style wipe removes sources
+      Object.keys(linesLoaded).forEach(k => delete linesLoaded[k]);
+      addTubeMarkers();
+      loadAllLinesHidden();
+    }
+  });
+}
+
+// ── TfL CONFIG ────────────────────────────────────────────────────────────────
+const TFL_KEY = '7f38efb2eecc491c900b842482778f8b';
+const TFL = (path) => {
+  const base = 'https://api.tfl.gov.uk' + path;
+  return TFL_KEY ? base + (path.includes('?') ? '&' : '?') + 'app_key=' + TFL_KEY : base;
+};
+// Robust CORS proxy fetch — tries multiple proxies with proper timeout
+function fetchWithTimeout(url, ms = 7000) {
+  return Promise.race([
+    fetch(url),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+}
+async function proxyFetch(url) {
+  const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const res = await fetchWithTimeout(proxy(url), 6000);
+      if (res.ok) return res;
+    } catch(e) { continue; }
+  }
+  // Direct as last resort (works if CORS ever gets enabled)
+  return fetchWithTimeout(url, 8000);
+}
+
+// ── LINE COLOUR MAP ───────────────────────────────────────────────────────────
+const LINE_COLORS = {
+  bakerloo:'#B36305', central:'#E32017', circle:'#FFD300', district:'#00782A',
+  'hammersmith-city':'#F3A9BB', jubilee:'#A0A5A9', metropolitan:'#9B0056',
+  northern:'#000000', piccadilly:'#003688', victoria:'#0098D4',
+  'waterloo-city':'#95CDBA', elizabeth:'#6950A1', dlr:'#00A4A7', overground:'#EE7C0E'
+};
+const LINE_CLASS = {
+  bakerloo:'lc-bakerloo', central:'lc-central', circle:'lc-circle', district:'lc-district',
+  'hammersmith-city':'lc-hammersmith', jubilee:'lc-jubilee', metropolitan:'lc-metropolitan',
+  northern:'lc-northern', piccadilly:'lc-piccadilly', victoria:'lc-victoria',
+  'waterloo-city':'lc-waterloo', elizabeth:'lc-elizabeth', dlr:'lc-dlr', overground:'lc-overground'
+};
+
+// ── ALL TfL STATIONS — full network ──────────────────────────────────────────
+const TUBE_STATIONS = [
+  // BAKERLOO
+  { name:"Harrow & Wealdstone",     id:"940GZZLUHAW", lat:51.5924, lng:-0.3353, lines:["bakerloo","overground"] },
+  { name:"Kenton",                  id:"940GZZLUKNT", lat:51.5814, lng:-0.3167, lines:["bakerloo"] },
+  { name:"South Kenton",            id:"940GZZLUSKN", lat:51.5706, lng:-0.3077, lines:["bakerloo"] },
+  { name:"North Wembley",           id:"940GZZLUNWB", lat:51.5632, lng:-0.3040, lines:["bakerloo"] },
+  { name:"Wembley Central",         id:"940GZZLUWMC", lat:51.5524, lng:-0.2963, lines:["bakerloo","overground"] },
+  { name:"Stonebridge Park",        id:"940GZZLUSBP", lat:51.5441, lng:-0.2758, lines:["bakerloo"] },
+  { name:"Harlesden",               id:"940GZZLUHSD", lat:51.5362, lng:-0.2575, lines:["bakerloo","overground"] },
+  { name:"Willesden Junction",      id:"940GZZLUWJN", lat:51.5326, lng:-0.2477, lines:["bakerloo","overground"] },
+  { name:"Kensal Green",            id:"940GZZLUKGN", lat:51.5304, lng:-0.2249, lines:["bakerloo","overground"] },
+  { name:"Queen's Park",            id:"940GZZLUQPS", lat:51.5340, lng:-0.2046, lines:["bakerloo"] },
+  { name:"Kilburn Park",            id:"940GZZLUKPK", lat:51.5356, lng:-0.1936, lines:["bakerloo"] },
+  { name:"Maida Vale",              id:"940GZZLUMVL", lat:51.5300, lng:-0.1858, lines:["bakerloo"] },
+  { name:"Warwick Avenue",          id:"940GZZLUWAV", lat:51.5234, lng:-0.1837, lines:["bakerloo"] },
+  { name:"Paddington",              id:"940GZZLUPAC", lat:51.5154, lng:-0.1755, lines:["bakerloo","circle","district","hammersmith-city","elizabeth"] },
+  { name:"Edgware Road (Bak)",      id:"940GZZLUEGR", lat:51.5202, lng:-0.1686, lines:["bakerloo"] },
+  { name:"Marylebone",              id:"940GZZLUMRB", lat:51.5224, lng:-0.1631, lines:["bakerloo"] },
+  { name:"Baker Street",            id:"940GZZLUBKR", lat:51.5226, lng:-0.1571, lines:["bakerloo","circle","metropolitan","hammersmith-city","jubilee"] },
+  { name:"Regent's Park",           id:"940GZZLURGP", lat:51.5237, lng:-0.1466, lines:["bakerloo"] },
+  { name:"Oxford Circus",           id:"940GZZLUOXC", lat:51.5152, lng:-0.1415, lines:["bakerloo","central","victoria"] },
+  { name:"Piccadilly Circus",       id:"940GZZLUPCC", lat:51.5100, lng:-0.1340, lines:["bakerloo","piccadilly"] },
+  { name:"Charing Cross",           id:"940GZZLUCHX", lat:51.5086, lng:-0.1247, lines:["bakerloo","northern"] },
+  { name:"Embankment",              id:"940GZZLUEMB", lat:51.5073, lng:-0.1223, lines:["bakerloo","circle","district","northern"] },
+  { name:"Waterloo",                id:"940GZZLUWLO", lat:51.5036, lng:-0.1143, lines:["bakerloo","jubilee","northern","waterloo-city"] },
+  { name:"Lambeth North",           id:"940GZZLULBN", lat:51.4987, lng:-0.1119, lines:["bakerloo"] },
+  { name:"Elephant & Castle",       id:"940GZZLUEAC", lat:51.4944, lng:-0.1001, lines:["bakerloo","northern"] },
+  // CENTRAL
+  { name:"Ealing Broadway",         id:"940GZZLUEBD", lat:51.5149, lng:-0.3014, lines:["central","district","elizabeth"] },
+  { name:"Ealing Common",           id:"940GZZLUECC", lat:51.5101, lng:-0.2877, lines:["central","district"] },
+  { name:"North Acton",             id:"940GZZLUNAC", lat:51.5200, lng:-0.2632, lines:["central"] },
+  { name:"East Acton",              id:"940GZZLUEAN", lat:51.5163, lng:-0.2491, lines:["central"] },
+  { name:"White City",              id:"940GZZLUWCY", lat:51.5117, lng:-0.2240, lines:["central"] },
+  { name:"Shepherd's Bush",         id:"940GZZLUSHB", lat:51.5050, lng:-0.2187, lines:["central"] },
+  { name:"Holland Park",            id:"940GZZLUHPK", lat:51.5073, lng:-0.2062, lines:["central"] },
+  { name:"Notting Hill Gate",       id:"940GZZLUNHG", lat:51.5093, lng:-0.1967, lines:["central","circle","district"] },
+  { name:"Queensway",               id:"940GZZLUQWY", lat:51.5107, lng:-0.1872, lines:["central"] },
+  { name:"Lancaster Gate",          id:"940GZZLULGT", lat:51.5120, lng:-0.1774, lines:["central"] },
+  { name:"Marble Arch",             id:"940GZZLUMBA", lat:51.5135, lng:-0.1589, lines:["central"] },
+  { name:"Bond Street",             id:"940GZZLUBND", lat:51.5142, lng:-0.1494, lines:["central","jubilee","elizabeth"] },
+  { name:"Tottenham Court Road",    id:"940GZZLUTCR", lat:51.5165, lng:-0.1298, lines:["central","northern","elizabeth"] },
+  { name:"Holborn",                 id:"940GZZLUHBN", lat:51.5174, lng:-0.1200, lines:["central","piccadilly"] },
+  { name:"Chancery Lane",           id:"940GZZLUCHL", lat:51.5143, lng:-0.1113, lines:["central"] },
+  { name:"St. Paul's",              id:"940GZZLUSPU", lat:51.5148, lng:-0.0976, lines:["central"] },
+  { name:"Bank",                    id:"940GZZLUBKF", lat:51.5133, lng:-0.0886, lines:["central","northern","waterloo-city","dlr"] },
+  { name:"Liverpool Street",        id:"940GZZLULVT", lat:51.5178, lng:-0.0823, lines:["central","circle","metropolitan","hammersmith-city","elizabeth"] },
+  { name:"Bethnal Green",           id:"940GZZLUBEG", lat:51.5270, lng:-0.0549, lines:["central"] },
+  { name:"Mile End",                id:"940GZZLUMLE", lat:51.5250, lng:-0.0332, lines:["central","district","hammersmith-city"] },
+  { name:"Stratford",               id:"940GZZLUSTA", lat:51.5416, lng:0.0045,  lines:["central","jubilee","dlr","elizabeth","overground"] },
+  { name:"Leyton",                  id:"940GZZLULTN", lat:51.5567, lng:0.0067,  lines:["central"] },
+  { name:"Leytonstone",             id:"940GZZLULYS", lat:51.5683, lng:0.0084,  lines:["central"] },
+  // JUBILEE
+  { name:"Stanmore",                id:"940GZZLUSTM", lat:51.6194, lng:-0.3024, lines:["jubilee"] },
+  { name:"Canons Park",             id:"940GZZLUCNP", lat:51.6083, lng:-0.2948, lines:["jubilee"] },
+  { name:"Queensbury",              id:"940GZZLUQBY", lat:51.5943, lng:-0.2862, lines:["jubilee"] },
+  { name:"Kingsbury",               id:"940GZZLUKBY", lat:51.5843, lng:-0.2789, lines:["jubilee"] },
+  { name:"Wembley Park",            id:"940GZZLUWMP", lat:51.5634, lng:-0.2795, lines:["jubilee","metropolitan"] },
+  { name:"Neasden",                 id:"940GZZLUNSD", lat:51.5561, lng:-0.2503, lines:["jubilee"] },
+  { name:"Dollis Hill",             id:"940GZZLUDOH", lat:51.5524, lng:-0.2350, lines:["jubilee"] },
+  { name:"Willesden Green",         id:"940GZZLUWOG", lat:51.5495, lng:-0.2218, lines:["jubilee"] },
+  { name:"Kilburn",                 id:"940GZZLUKLB", lat:51.5471, lng:-0.2044, lines:["jubilee"] },
+  { name:"West Hampstead",          id:"940GZZLUWHA", lat:51.5474, lng:-0.1910, lines:["jubilee"] },
+  { name:"Finchley Road",           id:"940GZZLUFYR", lat:51.5469, lng:-0.1793, lines:["jubilee","metropolitan"] },
+  { name:"Swiss Cottage",           id:"940GZZLUSWC", lat:51.5437, lng:-0.1743, lines:["jubilee"] },
+  { name:"St. John's Wood",         id:"940GZZLUSJW", lat:51.5347, lng:-0.1737, lines:["jubilee"] },
+  { name:"Green Park",              id:"940GZZLUGPK", lat:51.5067, lng:-0.1428, lines:["jubilee","piccadilly","victoria"] },
+  { name:"Westminster",             id:"940GZZLUWSM", lat:51.5010, lng:-0.1247, lines:["circle","district","jubilee"] },
+  { name:"Southwark",               id:"940GZZLUSOK", lat:51.5042, lng:-0.1053, lines:["jubilee"] },
+  { name:"London Bridge",           id:"940GZZLULBG", lat:51.5055, lng:-0.0872, lines:["jubilee","northern"] },
+  { name:"Bermondsey",              id:"940GZZLUBMY", lat:51.4995, lng:-0.0640, lines:["jubilee"] },
+  { name:"Canada Water",            id:"940GZZLUCWR", lat:51.4982, lng:-0.0502, lines:["jubilee","overground"] },
+  { name:"Canary Wharf",            id:"940GZZLUCYF", lat:51.5051, lng:-0.0209, lines:["jubilee","elizabeth","dlr"] },
+  { name:"North Greenwich",         id:"940GZZLUNGW", lat:51.5003, lng:0.0038,  lines:["jubilee"] },
+  { name:"Canning Town",            id:"940GZZLUCGT", lat:51.5143, lng:0.0082,  lines:["jubilee","dlr"] },
+  { name:"West Ham",                id:"940GZZLUWHA", lat:51.5287, lng:0.0051,  lines:["jubilee","district","hammersmith-city"] },
+  // VICTORIA
+  { name:"Brixton",                 id:"940GZZLUBXN", lat:51.4627, lng:-0.1145, lines:["victoria"] },
+  { name:"Stockwell",               id:"940GZZLUSKW", lat:51.4723, lng:-0.1228, lines:["northern","victoria"] },
+  { name:"Vauxhall",                id:"940GZZLUVXH", lat:51.4861, lng:-0.1233, lines:["victoria"] },
+  { name:"Pimlico",                 id:"940GZZLUPCO", lat:51.4893, lng:-0.1334, lines:["victoria"] },
+  { name:"Victoria",                id:"940GZZLUVIC", lat:51.4965, lng:-0.1447, lines:["circle","district","victoria"] },
+  { name:"Euston",                  id:"940GZZLUEUS", lat:51.5282, lng:-0.1337, lines:["northern","victoria"] },
+  { name:"Warren Street",           id:"940GZZLUWR",  lat:51.5243, lng:-0.1384, lines:["northern","victoria"] },
+  { name:"Highbury & Islington",    id:"940GZZLUHBY", lat:51.5462, lng:-0.1039, lines:["victoria","overground"] },
+  { name:"Finsbury Park",           id:"940GZZLUFPK", lat:51.5642, lng:-0.1065, lines:["victoria","piccadilly"] },
+  { name:"Seven Sisters",           id:"940GZZLUSSS", lat:51.5831, lng:-0.0756, lines:["victoria"] },
+  { name:"Tottenham Hale",          id:"940GZZLUTOH", lat:51.5882, lng:-0.0597, lines:["victoria"] },
+  { name:"Blackhorse Road",         id:"940GZZLUBHR", lat:51.5868, lng:-0.0413, lines:["victoria","overground"] },
+  { name:"Walthamstow Central",     id:"940GZZLUWWC", lat:51.5831, lng:-0.0197, lines:["victoria"] },
+  // NORTHERN
+  { name:"Morden",                  id:"940GZZLUMDN", lat:51.4020, lng:-0.1948, lines:["northern"] },
+  { name:"South Wimbledon",         id:"940GZZLUSWN", lat:51.4122, lng:-0.1918, lines:["northern"] },
+  { name:"Colliers Wood",           id:"940GZZLUCLW", lat:51.4175, lng:-0.1881, lines:["northern"] },
+  { name:"Tooting Broadway",        id:"940GZZLUTBY", lat:51.4276, lng:-0.1679, lines:["northern"] },
+  { name:"Tooting Bec",             id:"940GZZLUTBC", lat:51.4354, lng:-0.1601, lines:["northern"] },
+  { name:"Balham",                  id:"940GZZLUBLM", lat:51.4432, lng:-0.1527, lines:["northern"] },
+  { name:"Clapham South",           id:"940GZZLUCLP", lat:51.4535, lng:-0.1480, lines:["northern"] },
+  { name:"Clapham Common",          id:"940GZZLUCLA", lat:51.4614, lng:-0.1383, lines:["northern"] },
+  { name:"Clapham North",           id:"940GZZLUCLN", lat:51.4647, lng:-0.1302, lines:["northern"] },
+  { name:"Oval",                    id:"940GZZLUOVL", lat:51.4816, lng:-0.1131, lines:["northern"] },
+  { name:"Kennington",              id:"940GZZLUKEN", lat:51.4882, lng:-0.1053, lines:["northern"] },
+  { name:"Borough",                 id:"940GZZLUBRO", lat:51.5010, lng:-0.0941, lines:["northern"] },
+  { name:"Angel",                   id:"940GZZLUAGL", lat:51.5326, lng:-0.1059, lines:["northern"] },
+  { name:"Old Street",              id:"940GZZLUOST", lat:51.5257, lng:-0.0877, lines:["northern"] },
+  { name:"Moorgate",                id:"940GZZLUMGT", lat:51.5186, lng:-0.0886, lines:["circle","metropolitan","hammersmith-city","northern"] },
+  { name:"Goodge Street",           id:"940GZZLUGDG", lat:51.5204, lng:-0.1349, lines:["northern"] },
+  { name:"King's Cross St. Pancras",id:"940GZZLUKSX", lat:51.5309, lng:-0.1233, lines:["northern","piccadilly","victoria","circle","metropolitan","hammersmith-city"] },
+  { name:"Euston (NR)",             id:"940GZZLUEUT", lat:51.5282, lng:-0.1330, lines:["northern"] },
+  { name:"Camden Town",             id:"940GZZLUCTN", lat:51.5392, lng:-0.1426, lines:["northern"] },
+  { name:"Chalk Farm",              id:"940GZZLUCKF", lat:51.5446, lng:-0.1538, lines:["northern"] },
+  { name:"Belsize Park",            id:"940GZZLUBZP", lat:51.5502, lng:-0.1643, lines:["northern"] },
+  { name:"Hampstead",               id:"940GZZLUHSD", lat:51.5565, lng:-0.1781, lines:["northern"] },
+  { name:"Golders Green",           id:"940GZZLUGGN", lat:51.5720, lng:-0.1942, lines:["northern"] },
+  { name:"Brent Cross",             id:"940GZZLUBXS", lat:51.5763, lng:-0.2131, lines:["northern"] },
+  { name:"Hendon Central",          id:"940GZZLUHDC", lat:51.5828, lng:-0.2270, lines:["northern"] },
+  { name:"Edgware",                 id:"940GZZLUEDG", lat:51.6137, lng:-0.2754, lines:["northern"] },
+  { name:"Tufnell Park",            id:"940GZZLUTFP", lat:51.5554, lng:-0.1382, lines:["northern"] },
+  { name:"Archway",                 id:"940GZZLUACY", lat:51.5654, lng:-0.1353, lines:["northern"] },
+  { name:"Highgate",                id:"940GZZLUHGT", lat:51.5779, lng:-0.1456, lines:["northern"] },
+  { name:"East Finchley",           id:"940GZZLUEFG", lat:51.5875, lng:-0.1656, lines:["northern"] },
+  { name:"Finchley Central",        id:"940GZZLUFYC", lat:51.5999, lng:-0.1927, lines:["northern"] },
+  { name:"West Finchley",           id:"940GZZLUWFN", lat:51.6088, lng:-0.1883, lines:["northern"] },
+  { name:"Woodside Park",           id:"940GZZLUWOP", lat:51.6187, lng:-0.1878, lines:["northern"] },
+  { name:"Totteridge & Whetstone",  id:"940GZZLUTAW", lat:51.6306, lng:-0.1799, lines:["northern"] },
+  { name:"High Barnet",             id:"940GZZLUHBT", lat:51.6505, lng:-0.1942, lines:["northern"] },
+  // PICCADILLY
+  { name:"Cockfosters",             id:"940GZZLUCKS", lat:51.6517, lng:-0.1496, lines:["piccadilly"] },
+  { name:"Oakwood",                 id:"940GZZLUOKW", lat:51.6401, lng:-0.1312, lines:["piccadilly"] },
+  { name:"Southgate",               id:"940GZZLUSGN", lat:51.6322, lng:-0.1277, lines:["piccadilly"] },
+  { name:"Arnos Grove",             id:"940GZZLUASG", lat:51.6161, lng:-0.1249, lines:["piccadilly"] },
+  { name:"Bounds Green",            id:"940GZZLUBDG", lat:51.6073, lng:-0.1199, lines:["piccadilly"] },
+  { name:"Wood Green",              id:"940GZZLUWDG", lat:51.5997, lng:-0.1094, lines:["piccadilly"] },
+  { name:"Turnpike Lane",           id:"940GZZLUTPL", lat:51.5904, lng:-0.1030, lines:["piccadilly"] },
+  { name:"Manor House",             id:"940GZZLUMHS", lat:51.5705, lng:-0.0969, lines:["piccadilly"] },
+  { name:"Caledonian Road",         id:"940GZZLUCRD", lat:51.5407, lng:-0.1189, lines:["piccadilly"] },
+  { name:"King's Cross St. Pancras", id:"940GZZLUKSX", lat:51.5309, lng:-0.1233, lines:["northern","piccadilly","victoria","circle","metropolitan","hammersmith-city"] },
+  { name:"Russell Square",          id:"940GZZLURSQ", lat:51.5232, lng:-0.1239, lines:["piccadilly"] },
+  { name:"Covent Garden",           id:"940GZZLUCGN", lat:51.5129, lng:-0.1243, lines:["piccadilly"] },
+  { name:"Leicester Square",        id:"940GZZLULSQ", lat:51.5113, lng:-0.1281, lines:["piccadilly","northern"] },
+  { name:"Knightsbridge",           id:"940GZZLUKBT", lat:51.5014, lng:-0.1607, lines:["piccadilly"] },
+  { name:"Hyde Park Corner",        id:"940GZZLUHPC", lat:51.5027, lng:-0.1527, lines:["piccadilly"] },
+  { name:"Gloucester Road",         id:"940GZZLUGRD", lat:51.4944, lng:-0.1826, lines:["piccadilly","circle","district"] },
+  { name:"Baron's Court",           id:"940GZZLUBRC", lat:51.4895, lng:-0.2085, lines:["piccadilly","district"] },
+  { name:"Acton Town",              id:"940GZZLUATN", lat:51.5028, lng:-0.2801, lines:["piccadilly","district"] },
+  { name:"Heathrow T2&3",           id:"940GZZLUHRC", lat:51.4737, lng:-0.4533, lines:["piccadilly","elizabeth"] },
+  { name:"Heathrow T4",             id:"940GZZLUHR4", lat:51.4584, lng:-0.4481, lines:["piccadilly","elizabeth"] },
+  { name:"Heathrow T5",             id:"940GZZLUHR5", lat:51.4726, lng:-0.4888, lines:["piccadilly","elizabeth"] },
+  // DISTRICT
+  { name:"Richmond",                id:"940GZZLURMD", lat:51.4630, lng:-0.3013, lines:["district","overground"] },
+  { name:"Kew Gardens",             id:"940GZZLUKWG", lat:51.4775, lng:-0.2850, lines:["district","overground"] },
+  { name:"Gunnersbury",             id:"940GZZLUGUN", lat:51.4928, lng:-0.2748, lines:["district"] },
+  { name:"Turnham Green",           id:"940GZZLUTNG", lat:51.4952, lng:-0.2549, lines:["district","piccadilly"] },
+  { name:"Stamford Brook",          id:"940GZZLUSBK", lat:51.4952, lng:-0.2427, lines:["district"] },
+  { name:"Ravenscourt Park",        id:"940GZZLURCP", lat:51.4934, lng:-0.2357, lines:["district"] },
+  { name:"Hammersmith",             id:"940GZZLUHSC", lat:51.4934, lng:-0.2237, lines:["district","piccadilly","hammersmith-city","circle"] },
+  { name:"Barons Court",            id:"940GZZLUBRC", lat:51.4895, lng:-0.2085, lines:["piccadilly","district"] },
+  { name:"West Kensington",         id:"940GZZLUWKN", lat:51.4903, lng:-0.1969, lines:["district"] },
+  { name:"Earl's Court",            id:"940GZZLUERC", lat:51.4916, lng:-0.1936, lines:["district","piccadilly"] },
+  { name:"High Street Kensington",  id:"940GZZLUHSK", lat:51.5012, lng:-0.1922, lines:["circle","district"] },
+  { name:"South Kensington",        id:"940GZZLUSKN", lat:51.4941, lng:-0.1738, lines:["circle","district","piccadilly"] },
+  { name:"Sloane Square",           id:"940GZZLUSQS", lat:51.4924, lng:-0.1565, lines:["circle","district"] },
+  { name:"Tower Hill",              id:"940GZZLUTOH", lat:51.5098, lng:-0.0766, lines:["circle","district"] },
+  { name:"Aldgate East",            id:"940GZZLUADE", lat:51.5152, lng:-0.0727, lines:["district","hammersmith-city"] },
+  { name:"Whitechapel",             id:"940GZZLUWEH", lat:51.5196, lng:-0.0600, lines:["district","hammersmith-city","elizabeth"] },
+  { name:"Stepney Green",           id:"940GZZLUSPG", lat:51.5220, lng:-0.0459, lines:["district","hammersmith-city"] },
+  { name:"Bow Road",                id:"940GZZLUBWR", lat:51.5271, lng:-0.0254, lines:["district","hammersmith-city"] },
+  { name:"Bromley-by-Bow",          id:"940GZZLUBBW", lat:51.5250, lng:-0.0117, lines:["district","hammersmith-city"] },
+  { name:"Wimbledon",               id:"940GZZLUWIM", lat:51.4214, lng:-0.2064, lines:["district"] },
+  { name:"Wimbledon Park",          id:"940GZZLUWIP", lat:51.4324, lng:-0.2022, lines:["district"] },
+  { name:"Southfields",             id:"940GZZLUSSF", lat:51.4445, lng:-0.2069, lines:["district"] },
+  { name:"East Putney",             id:"940GZZLUEPY", lat:51.4587, lng:-0.2139, lines:["district"] },
+  { name:"Putney Bridge",           id:"940GZZLUPYB", lat:51.4685, lng:-0.2095, lines:["district"] },
+  { name:"Parsons Green",           id:"940GZZLUPSG", lat:51.4752, lng:-0.2002, lines:["district"] },
+  { name:"Fulham Broadway",         id:"940GZZLUFLB", lat:51.4804, lng:-0.1939, lines:["district"] },
+  // METROPOLITAN / CIRCLE / H&C
+  { name:"Aldgate",                 id:"940GZZLUALD", lat:51.5143, lng:-0.0752, lines:["circle","metropolitan"] },
+  { name:"Farringdon",              id:"940GZZLUFRN", lat:51.5203, lng:-0.1050, lines:["circle","metropolitan","hammersmith-city","elizabeth"] },
+  { name:"Barbican",                id:"940GZZLUBBN", lat:51.5203, lng:-0.0977, lines:["circle","metropolitan","hammersmith-city"] },
+  { name:"Blackfriars",             id:"940GZZLUBLF", lat:51.5118, lng:-0.1037, lines:["circle","district"] },
+  { name:"Mansion House",           id:"940GZZLUMSH", lat:51.5122, lng:-0.0941, lines:["circle","district"] },
+  { name:"Cannon Street",           id:"940GZZLUCAN", lat:51.5113, lng:-0.0904, lines:["circle","district"] },
+  { name:"Monument",                id:"940GZZLUMMT", lat:51.5103, lng:-0.0863, lines:["circle","district"] },
+  { name:"Fenchurch Street",        id:"910GFNCHSTS", lat:51.5118, lng:-0.0784, lines:["dlr"] },
+  { name:"Edgware Road (C)",        id:"940GZZLUEGW", lat:51.5200, lng:-0.1674, lines:["circle","hammersmith-city","district"] },
+  { name:"Paddington (H)",          id:"940GZZLUPAH", lat:51.5163, lng:-0.1769, lines:["hammersmith-city","circle"] },
+  { name:"Goldhawk Road",           id:"940GZZLUGHK", lat:51.5019, lng:-0.2265, lines:["hammersmith-city"] },
+  { name:"Shepherd's Bush Market",  id:"940GZZLUSBM", lat:51.5050, lng:-0.2268, lines:["hammersmith-city"] },
+  { name:"Wood Lane",               id:"940GZZLUWLA", lat:51.5077, lng:-0.2249, lines:["hammersmith-city","circle"] },
+  { name:"Latimer Road",            id:"940GZZLULRD", lat:51.5136, lng:-0.2175, lines:["hammersmith-city","circle"] },
+  { name:"Ladbroke Grove",          id:"940GZZLULBG", lat:51.5168, lng:-0.2101, lines:["hammersmith-city","circle"] },
+  { name:"Westbourne Park",         id:"940GZZLUWBP", lat:51.5211, lng:-0.1985, lines:["hammersmith-city","circle"] },
+  { name:"Royal Oak",               id:"940GZZLUROK", lat:51.5196, lng:-0.1882, lines:["hammersmith-city","circle"] },
+  { name:"Bayswater",               id:"940GZZLUBWR", lat:51.5122, lng:-0.1879, lines:["circle","district"] },
+  { name:"Great Portland Street",   id:"940GZZLUGPS", lat:51.5240, lng:-0.1443, lines:["circle","metropolitan","hammersmith-city"] },
+  { name:"Euston Square",           id:"940GZZLUESQ", lat:51.5260, lng:-0.1366, lines:["circle","metropolitan","hammersmith-city"] },
+  { name:"St. Pancras Int'l",       id:"910GSTPNCRS", lat:51.5309, lng:-0.1233, lines:["circle","metropolitan","hammersmith-city"] },
+  { name:"Angel (Islington)",       id:"940GZZLUAGL", lat:51.5326, lng:-0.1059, lines:["northern"] },
+  { name:"Harrow-on-the-Hill",      id:"940GZZLUHOH", lat:51.5789, lng:-0.3355, lines:["metropolitan"] },
+  { name:"Watford",                 id:"940GZZLUWAT", lat:51.6573, lng:-0.4176, lines:["metropolitan"] },
+  { name:"Chorleywood",             id:"940GZZLUCYW", lat:51.6544, lng:-0.5190, lines:["metropolitan"] },
+  { name:"Rickmansworth",           id:"940GZZLURKW", lat:51.6408, lng:-0.4720, lines:["metropolitan"] },
+  { name:"Croxley",                 id:"940GZZLUCRX", lat:51.6480, lng:-0.4417, lines:["metropolitan"] },
+  { name:"Moor Park",               id:"940GZZLUMPK", lat:51.6376, lng:-0.4326, lines:["metropolitan"] },
+  { name:"Northwood",               id:"940GZZLUNWD", lat:51.6084, lng:-0.4231, lines:["metropolitan"] },
+  { name:"Northwood Hills",         id:"940GZZLUNWH", lat:51.6007, lng:-0.4098, lines:["metropolitan"] },
+  { name:"Pinner",                  id:"940GZZLUPNR", lat:51.5929, lng:-0.3803, lines:["metropolitan"] },
+  { name:"North Harrow",            id:"940GZZLUNHR", lat:51.5858, lng:-0.3613, lines:["metropolitan"] },
+  { name:"Amersham",                id:"940GZZLUAMS", lat:51.6742, lng:-0.6074, lines:["metropolitan"] },
+  { name:"Chesham",                 id:"940GZZLUCHM", lat:51.7053, lng:-0.6088, lines:["metropolitan"] },
+  { name:"Chalfont & Latimer",      id:"940GZZLUCAL", lat:51.6681, lng:-0.5623, lines:["metropolitan"] },
+  { name:"Uxbridge",                id:"940GZZLUUXB", lat:51.5463, lng:-0.4785, lines:["metropolitan","piccadilly"] },
+  // DLR
+  { name:"Shadwell",                id:"910GSHADWEL", lat:51.5113, lng:-0.0567, lines:["dlr","overground"] },
+  { name:"Limehouse",               id:"910GLMHST",   lat:51.5119, lng:-0.0390, lines:["dlr"] },
+  { name:"Westferry",               id:"910GWSTFRY",  lat:51.5096, lng:-0.0263, lines:["dlr"] },
+  { name:"Poplar",                  id:"910GPOPLR",   lat:51.5075, lng:-0.0172, lines:["dlr"] },
+  { name:"West India Quay",         id:"910GWDQUAY",  lat:51.5065, lng:-0.0222, lines:["dlr"] },
+  { name:"Heron Quays",             id:"910GHRNQY",   lat:51.5038, lng:-0.0200, lines:["dlr"] },
+  { name:"South Quay",              id:"910GSQUAY",   lat:51.5015, lng:-0.0198, lines:["dlr"] },
+  { name:"Crossharbour",            id:"910GCRSHRB",  lat:51.4971, lng:-0.0184, lines:["dlr"] },
+  { name:"Mudchute",                id:"910GMUDCHUT", lat:51.4890, lng:-0.0186, lines:["dlr"] },
+  { name:"Island Gardens",          id:"910GISLDGDS", lat:51.4840, lng:-0.0131, lines:["dlr"] },
+  { name:"Cutty Sark",              id:"910GCUTTSK",  lat:51.4831, lng:-0.0094, lines:["dlr"] },
+  { name:"Greenwich",               id:"910GGRNWCH",  lat:51.4779, lng:-0.0146, lines:["dlr","elizabeth"] },
+  { name:"Deptford Bridge",         id:"910GDPTFDBR", lat:51.4741, lng:-0.0218, lines:["dlr"] },
+  { name:"Elverson Road",           id:"910GELVRSRD", lat:51.4690, lng:-0.0198, lines:["dlr"] },
+  { name:"Lewisham",                id:"910GLEWISHM", lat:51.4659, lng:-0.0139, lines:["dlr"] },
+  { name:"Beckton",                 id:"910GBECKTON", lat:51.5141, lng:0.0619,  lines:["dlr"] },
+  { name:"Gallions Reach",          id:"910GGALLS",   lat:51.5086, lng:0.0810,  lines:["dlr"] },
+  { name:"Cyprus",                  id:"910GCYPS",    lat:51.5077, lng:0.0621,  lines:["dlr"] },
+  { name:"Woolwich Arsenal",        id:"910GWOLWICH", lat:51.4901, lng:0.0695,  lines:["dlr","elizabeth"] },
+  // ELIZABETH LINE
+  { name:"Tottenham Court Road (E)",id:"940GZZLUTCR", lat:51.5165, lng:-0.1298, lines:["elizabeth","central","northern"] },
+  { name:"Paddington (E)",          id:"910GPADTLL",  lat:51.5178, lng:-0.1768, lines:["elizabeth"] },
+  { name:"Hayes & Harlington",      id:"910GHAYESAH", lat:51.5157, lng:-0.4218, lines:["elizabeth"] },
+  { name:"Slough",                  id:"910GSLOUGH",  lat:51.5105, lng:-0.5924, lines:["elizabeth"] },
+  { name:"Reading",                 id:"910GREADING", lat:51.4564, lng:-0.9714, lines:["elizabeth"] },
+  { name:"Shenfield",               id:"910GSHENF",   lat:51.6283, lng:0.3213,  lines:["elizabeth"] },
+  { name:"Abbey Wood",              id:"910GABBYWOD", lat:51.4907, lng:0.1207,  lines:["elizabeth"] },
+  { name:"Custom House",            id:"910GCSTMHS",  lat:51.5089, lng:0.0355,  lines:["elizabeth","dlr"] },
+  { name:"Maryland",                id:"910GMRYLAND", lat:51.5461, lng:0.0174,  lines:["elizabeth"] },
+  { name:"Forest Gate",             id:"910GFRSTGT",  lat:51.5476, lng:0.0385,  lines:["elizabeth"] },
+  { name:"Manor Park",              id:"910GMNRPK",   lat:51.5495, lng:0.0556,  lines:["elizabeth"] },
+  { name:"Ilford",                  id:"910GILFORD",  lat:51.5577, lng:0.0750,  lines:["elizabeth"] },
+  { name:"Seven Kings",             id:"910GSVNKNGS", lat:51.5593, lng:0.1010,  lines:["elizabeth"] },
+  { name:"Goodmayes",               id:"910GGOODMAY", lat:51.5609, lng:0.1191,  lines:["elizabeth"] },
+  { name:"Chadwell Heath",          id:"910GCHDWLH",  lat:51.5618, lng:0.1396,  lines:["elizabeth"] },
+  { name:"Romford",                 id:"910GROMFORD", lat:51.5753, lng:0.1839,  lines:["elizabeth"] },
+  { name:"Gidea Park",              id:"910GGIDEAPK", lat:51.5776, lng:0.2089,  lines:["elizabeth"] },
+  { name:"Harold Wood",             id:"910GHARLWD",  lat:51.5869, lng:0.2303,  lines:["elizabeth"] },
+  { name:"Brentwood",               id:"910GBRNTWOD", lat:51.6158, lng:0.3056,  lines:["elizabeth"] },
+  { name:"Ingatestone",             id:"910GINGTSTO", lat:51.6698, lng:0.3832,  lines:["elizabeth"] },
+  { name:"Chelmsford",              id:"910GCHLMSFD", lat:51.7355, lng:0.4664,  lines:["elizabeth"] },
+  // WATERLOO & CITY
+  { name:"Waterloo (W&C)",          id:"940GZZLUWLO", lat:51.5036, lng:-0.1143, lines:["waterloo-city"] },
+  { name:"Bank (W&C)",              id:"940GZZLUBKF", lat:51.5133, lng:-0.0886, lines:["waterloo-city"] },
+];
+
+// ── TUBE MARKER LAYER ─────────────────────────────────────────────────────────
+let tubeVisible = false;
+let tubeMarkers = [];
+let linesVisible = false;
+const linesLoaded = {};
+
+// Deduplicate by id, merging lines from all entries for the same station
+const UNIQUE_STATIONS = Object.values(
+  TUBE_STATIONS.reduce((acc, s) => {
+    if (!acc[s.id]) {
+      acc[s.id] = { ...s, lines: [...s.lines] };
+    } else {
+      // Merge any new lines not already listed
+      s.lines.forEach(l => { if (!acc[s.id].lines.includes(l)) acc[s.id].lines.push(l); });
+    }
+    return acc;
+  }, {})
+);
+
+function toggleTube(btn) {
+  tubeVisible = !tubeVisible;
+  btn.classList.toggle('on', tubeVisible);
+  btn.textContent = tubeVisible ? 'Hide Tube' : 'Tube Stations';
+  if (tubeVisible) {
+    addTubeMarkers();
+    // Pre-load all line geometry silently in background (hidden until station clicked)
+    loadAllLinesHidden();
+  } else {
+    removeTubeMarkers();
+    removeAllLines();
+    closeArrivals();
+  }
+}
+
+function removeTubeMarkers() {
+  tubeMarkers.forEach(m => m.remove());
+  tubeMarkers = [];
+}
+
+function addTubeMarkers() {
+  removeTubeMarkers();
+  UNIQUE_STATIONS.forEach(st => {
+    const primaryLine = st.lines[0];
+    const color = LINE_COLORS[primaryLine] || '#888';
+    const el = document.createElement('div');
+    el.className = 'tube-marker';
+    el.style.background = color;
+    el.title = st.name;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openArrivals(st);
+    });
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([st.lng, st.lat])
+      .addTo(map);
+    tubeMarkers.push(marker);
+  });
+}
+
+// ── LINE SPLINES — loaded hidden, shown per station click ─────────────────────
+const TFL_LINES = ['bakerloo','central','circle','district','hammersmith-city',
+  'jubilee','metropolitan','northern','piccadilly','victoria','waterloo-city',
+  'elizabeth','dlr','overground'];
+
+// Pre-fetch all lines in background but keep hidden
+async function loadAllLinesHidden() {
+  for (const line of TFL_LINES) {
+    if (!linesLoaded[line]) await loadLine(line, true);
+  }
+}
+
+async function loadLine(lineId, hidden = false) {
+  try {
+    const url = TFL(`/Line/${lineId}/Route/Sequence/all?excludeCrowding=true`);
+    const res = await proxyFetch(url);
+    const data = await res.json();
+    if (!data || !data.stopPointSequences) return;
+
+    const allCoords = [];
+    for (const seq of data.stopPointSequences) {
+      const pts = seq.stopPoint ? seq.stopPoint.map(p => [p.lon, p.lat]) : [];
+      if (pts.length >= 2) allCoords.push(pts);
+    }
+    if (!allCoords.length) return;
+
+    const color = LINE_COLORS[lineId] || '#888';
+    const srcId = `line-src-${lineId}`;
+    const layId = `line-lyr-${lineId}`;
+
+    if (!map.getSource(srcId)) {
+      map.addSource(srcId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: allCoords.map(coords => ({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: coords }
+          }))
+        }
+      });
+    }
+
+    if (!map.getLayer(layId)) {
+      map.addLayer({
+        id: layId,
+        type: 'line',
+        source: srcId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+          'visibility': hidden ? 'none' : 'visible'
+        },
+        paint: {
+          'line-color': color,
+          'line-width': ['interpolate',['linear'],['zoom'], 9,2, 12,3, 15,5],
+          'line-opacity': 0.9
+        }
+      });
+    }
+
+    linesLoaded[lineId] = true;
+  } catch(e) { /* silently skip */ }
+}
+
+// Show only the lines for a given station, hide all others
+async function showStationLines(stationLines) {
+  // Ensure all needed lines are loaded first
+  for (const lineId of stationLines) {
+    if (!linesLoaded[lineId]) await loadLine(lineId, true);
+  }
+  // Now set visibility
+  TFL_LINES.forEach(lineId => {
+    const layId = `line-lyr-${lineId}`;
+    if (map.getLayer(layId)) {
+      const isActive = stationLines.includes(lineId);
+      map.setLayoutProperty(layId, 'visibility', isActive ? 'visible' : 'none');
+      if (isActive) {
+        map.setPaintProperty(layId, 'line-width',
+          ['interpolate',['linear'],['zoom'], 9,2.5, 12,4, 15,6]);
+        map.setPaintProperty(layId, 'line-opacity', 1);
+      }
+    }
+  });
+}
+
+function hideAllLines() {
+  TFL_LINES.forEach(lineId => {
+    const layId = `line-lyr-${lineId}`;
+    if (map.getLayer(layId)) {
+      map.setLayoutProperty(layId, 'visibility', 'none');
+    }
+  });
+}
+
+function removeAllLines() {
+  TFL_LINES.forEach(lineId => {
+    const layId = `line-lyr-${lineId}`;
+    const srcId = `line-src-${lineId}`;
+    if (map.getLayer(layId)) map.removeLayer(layId);
+    if (map.getSource(srcId)) map.removeSource(srcId);
+    delete linesLoaded[lineId];
+  });
+}
+
+// ── ARRIVALS PANEL ────────────────────────────────────────────────────────────
+let arrivalsInterval = null;
+let arrivalsData = [];       // full unfiltered list
+let activeLineFilter = null; // currently selected line pill
+
+function openArrivals(station) {
+  if (arrivalsInterval) clearInterval(arrivalsInterval);
+  activeLineFilter = null;
+  arrivalsData = [];
+
+  document.getElementById('panel-station-name').innerHTML =
+    station.name + ' <span>Arrivals</span>';
+
+  const uniqueLines = [...new Set(station.lines)];
+  const strip = document.getElementById('panel-lines');
+  strip.innerHTML = uniqueLines.map(l => {
+      const c = LINE_COLORS[l] || '#888';
+      const name = l.replace(/-/g,' ');
+      return `<span class="line-pill" data-line="${l}" style="background:${c}">${name}</span>`;
+    }).join('');
+
+  // Pill click handler — toggle filter
+  strip.querySelectorAll('.line-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const line = pill.dataset.line;
+      if (activeLineFilter === line) {
+        // Clear filter
+        activeLineFilter = null;
+        strip.querySelectorAll('.line-pill').forEach(p => p.classList.remove('active'));
+      } else {
+        activeLineFilter = line;
+        strip.querySelectorAll('.line-pill').forEach(p =>
+          p.classList.toggle('active', p.dataset.line === line));
+      }
+      renderArrivals();
+    });
+  });
+
+  document.getElementById('arrivals-panel').classList.add('open');
+  document.getElementById('arrivals-loading').style.display = 'block';
+  document.getElementById('arrivals-list').innerHTML = '';
+
+  if (tubeVisible) showStationLines(uniqueLines);
+
+  fetchArrivals(station);
+  arrivalsInterval = setInterval(() => fetchArrivals(station), 30000);
+}
+
+async function fetchArrivals(station) {
+  try {
+    const url = TFL(`/StopPoint/${station.id}/Arrivals`);
+    const res = await proxyFetch(url);
+    const data = await res.json();
+
+    document.getElementById('arrivals-loading').style.display = 'none';
+
+    if (!data || data.length === 0) {
+      document.getElementById('arrivals-list').innerHTML =
+        '<div class="arrival-loading">No arrivals data right now</div>';
+      return;
+    }
+
+    // Store full sorted list
+    arrivalsData = data
+      .filter(a => a.timeToStation !== undefined)
+      .sort((a, b) => a.timeToStation - b.timeToStation);
+
+    renderArrivals();
+
+  } catch(e) {
+    document.getElementById('arrivals-loading').style.display = 'none';
+    document.getElementById('arrivals-list').innerHTML =
+      '<div class="arrival-loading">Could not load live data</div>';
+  }
+}
+
+function renderArrivals() {
+  const filtered = activeLineFilter
+    ? arrivalsData.filter(a => a.lineId === activeLineFilter)
+    : arrivalsData;
+
+  const shown = filtered.slice(0, activeLineFilter ? 12 : 8);
+
+  if (shown.length === 0) {
+    document.getElementById('arrivals-list').innerHTML =
+      '<div class="arrival-loading">No arrivals on this line right now</div>';
+    return;
+  }
+
+  document.getElementById('arrivals-list').innerHTML = shown.map(a => {
+    const mins = Math.round(a.timeToStation / 60);
+    const timeStr = mins <= 0 ? 'Due' : mins === 1 ? '1 min' : `${mins} mins`;
+    const line = a.lineId || '';
+    const color = LINE_COLORS[line] || '#888';
+    const dest = a.destinationName || a.towards || 'Unknown';
+    const platform = a.platformName ? `· ${a.platformName}` : '';
+    return `
+      <div class="arrival-row">
+        <div class="arrival-dot" style="background:${color}"></div>
+        <div class="arrival-dest">
+          ${dest}
+          <small>${a.lineName || line}${platform}</small>
+        </div>
+        <div class="arrival-time">${timeStr}</div>
+      </div>`;
+  }).join('');
+}
+
+function closeArrivals() {
+  document.getElementById('arrivals-panel').classList.remove('open');
+  if (arrivalsInterval) { clearInterval(arrivalsInterval); arrivalsInterval = null; }
+  if (tubeVisible) hideAllLines();
+}
+
+// ── JOURNEY PLANNER ───────────────────────────────────────────────────────────
+let jpOpen = false;
+
+function toggleJP(btn) {
+  jpOpen = !jpOpen;
+  btn.classList.toggle('on', jpOpen);
+  document.getElementById('jp-panel').classList.toggle('open', jpOpen);
+  if (jpOpen) {
+    const now = new Date();
+    // Set date to today
+    const yyyy = now.getFullYear();
+    const mm   = String(now.getMonth() + 1).padStart(2, '0');
+    const dd   = String(now.getDate()).padStart(2, '0');
+    document.getElementById('jp-date').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('jp-date').min   = `${yyyy}-${mm}-${dd}`;
+    // Set time to now
+    document.getElementById('jp-time').value =
+      String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }
+}
+
+let suggestTimers = {};
+function setupAutocomplete(inputId, suggestId, storeKey) {
+  const input = document.getElementById(inputId);
+  const box   = document.getElementById(suggestId);
+  input.addEventListener('input', () => {
+    clearTimeout(suggestTimers[storeKey]);
+    const q = input.value.trim();
+    if (q.length < 2) { box.style.display = 'none'; return; }
+    suggestTimers[storeKey] = setTimeout(async () => {
+      try {
+        // Search local list first, fallback to TfL API
+        const local = UNIQUE_STATIONS.filter(s =>
+          s.name.toLowerCase().includes(q.toLowerCase())
+        ).slice(0, 8);
+
+        let results = local;
+        if (local.length < 3) {
+          // Supplement with TfL search for addresses/postcodes/places
+          const url = TFL(`/StopPoint/Search/${encodeURIComponent(q)}?modes=tube,dlr,overground,elizabeth-line&maxResults=6`);
+          const res = await proxyFetch(url);
+          const data = await res.json();
+          if (data.matches) {
+            const extra = data.matches.map(m => ({ name: m.name, id: m.id }));
+            results = [...local, ...extra.filter(e => !local.find(l => l.id === e.id))].slice(0, 8);
+          }
+        }
+
+        if (results.length) {
+          box.innerHTML = results.map(s =>
+            `<div class="jp-suggest-item" data-name="${s.name}" data-id="${s.id}">${s.name}</div>`
+          ).join('');
+          box.style.display = 'block';
+          box.querySelectorAll('.jp-suggest-item').forEach(el => {
+            el.addEventListener('click', () => {
+              input.value = el.dataset.name;
+              input.dataset.id = el.dataset.id;
+              box.style.display = 'none';
+            });
+          });
+        } else {
+          box.style.display = 'none';
+        }
+      } catch(e) { box.style.display = 'none'; }
+    }, 280);
+  });
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !box.contains(e.target)) box.style.display = 'none';
+  });
+}
+
+setupAutocomplete('jp-from', 'jp-from-suggest', 'from');
+setupAutocomplete('jp-to',   'jp-to-suggest',   'to');
+
+async function planJourney() {
+  const fromInput = document.getElementById('jp-from');
+  const toInput   = document.getElementById('jp-to');
+  const dateVal   = document.getElementById('jp-date').value;
+  const timeVal   = document.getElementById('jp-time').value;
+  const typeVal   = document.getElementById('jp-type').value;
+  const btn       = document.getElementById('jp-go');
+  const results   = document.getElementById('jp-results');
+
+  // Prefer the stored NaPTAN id, fall back to typed text
+  const from = fromInput.dataset.id || fromInput.value.trim();
+  const to   = toInput.dataset.id   || toInput.value.trim();
+
+  if (!from || !to) {
+    results.innerHTML = '<div class="jp-empty">Please enter both a from and to station</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+  results.innerHTML = '<div class="jp-empty">Finding routes…</div>';
+
+  try {
+    // Build date param — TfL wants YYYYMMDD
+    const dateParam = dateVal ? '&date=' + dateVal.replace(/-/g,'') : '';
+    const timeParam = timeVal ? '&time=' + timeVal.replace(':', '') : '';
+    const typeParam = '&timeIs=' + typeVal;
+    const modeParam = '&mode=tube,dlr,overground,elizabeth-line,national-rail,walking';
+
+    const url = TFL(`/Journey/JourneyResults/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}?nationalSearch=true${modeParam}${dateParam}${timeParam}${typeParam}`);
+    const res  = await proxyFetch(url);
+    const data = await res.json();
+
+    // TfL returns disambiguation pages when it can't match a station name
+    if (data.fromLocationDisambiguation || data.toLocationDisambiguation) {
+      const disambig = data.fromLocationDisambiguation || data.toLocationDisambiguation;
+      const options  = disambig.disambiguationOptions || [];
+      results.innerHTML = `<div class="jp-empty">Did you mean one of these?</div>` +
+        options.slice(0,5).map(o =>
+          `<div class="jp-route" style="cursor:pointer" onclick="selectDisambig('${o.place?.commonName?.replace(/'/g,"\\'")}','${o.place?.id}','${data.fromLocationDisambiguation ? 'from':'to'}')">`+
+          `<div class="jp-route-top"><div class="jp-route-dur" style="font-size:14px">${o.place?.commonName || ''}</div></div>`+
+          `</div>`
+        ).join('');
+      btn.disabled = false; btn.textContent = 'Find Routes'; return;
+    }
+
+    if (!data.journeys || data.journeys.length === 0) {
+      results.innerHTML = '<div class="jp-empty">No routes found — check station names and try again</div>';
+    } else {
+      results.innerHTML = data.journeys.slice(0, 5).map(j => {
+        const dur = j.duration;
+        const dep = j.startDateTime   ? new Date(j.startDateTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
+        const arr = j.arrivalDateTime ? new Date(j.arrivalDateTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
+        const legs = (j.legs || []).map(leg => {
+          if (leg.mode && leg.mode.id === 'walking') {
+            return `<span class="jp-leg-walk">→ walk ${leg.duration}m →</span>`;
+          }
+          const lineId   = leg.routeOptions?.[0]?.lineIdentifier?.id || leg.mode?.id || '';
+          const color    = LINE_COLORS[lineId] || '#555';
+          const lineName = leg.routeOptions?.[0]?.name || leg.mode?.name || lineId;
+          return `<span class="jp-leg" style="background:${color}">${lineName}</span>`;
+        }).join('');
+        return `
+          <div class="jp-route">
+            <div class="jp-route-top">
+              <div class="jp-route-dur">${dur} min</div>
+              <div class="jp-route-dep">${dep}${arr ? ' → ' + arr : ''}</div>
+            </div>
+            <div class="jp-route-legs">${legs}</div>
+          </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    results.innerHTML = `<div class="jp-empty">Could not reach TfL — check your connection and try again</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Find Routes';
+}
+
+function selectDisambig(name, id, field) {
+  const input = document.getElementById(`jp-${field}`);
+  input.value = name;
+  input.dataset.id = id;
+  planJourney();
 }
 </script>
 </body>
