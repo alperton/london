@@ -569,8 +569,14 @@ function toggleTheme(btn) {
     if (tubeVisible) {
       // Re-add markers; lines need re-adding since style wipe removes sources
       Object.keys(linesLoaded).forEach(k => delete linesLoaded[k]);
+      Object.keys(lineStops).forEach(k => delete lineStops[k]);
       addTubeMarkers();
       loadAllLinesHidden();
+      enrichStationCoords().then(enriched => {
+        if (enriched && tubeVisible) { removeTubeMarkers(); addTubeMarkers(); }
+      });
+      // Restart train dots if active
+      if (activeTrainLines.length) startTrainDots(activeTrainLines);
     }
   });
 }
@@ -645,7 +651,7 @@ const TUBE_STATIONS = [
   { name:"Bond Street",             id:"940GZZLUBND", lat:51.5142, lng:-0.1494, lines:["central","jubilee","elizabeth"] },
   { name:"Tottenham Court Road",    id:"940GZZLUTCR", lat:51.5165, lng:-0.1298, lines:["central","northern","elizabeth"] },
   { name:"Holborn",                 id:"940GZZLUHBN", lat:51.5174, lng:-0.1200, lines:["central","piccadilly"] },
-  { name:"Chancery Lane",           id:"940GZZLUCHL", lat:51.5143, lng:-0.1113, lines:["central"] },
+  { name:"Chancery Lane",           id:"940GZZLUCHL", lat:51.5182, lng:-0.1116, lines:["central"] },
   { name:"St. Paul's",              id:"940GZZLUSPU", lat:51.5148, lng:-0.0976, lines:["central"] },
   { name:"Bank",                    id:"940GZZLUBKF", lat:51.5133, lng:-0.0886, lines:["central","northern","waterloo-city","dlr"] },
   { name:"Liverpool Street",        id:"940GZZLULVT", lat:51.5178, lng:-0.0823, lines:["central","circle","metropolitan","hammersmith-city","elizabeth"] },
@@ -709,7 +715,7 @@ const TUBE_STATIONS = [
   { name:"Old Street",              id:"940GZZLUOST", lat:51.5257, lng:-0.0877, lines:["northern"] },
   { name:"Moorgate",                id:"940GZZLUMGT", lat:51.5186, lng:-0.0886, lines:["circle","metropolitan","hammersmith-city","northern"] },
   { name:"Goodge Street",           id:"940GZZLUGDG", lat:51.5204, lng:-0.1349, lines:["northern"] },
-  { name:"King's Cross St. Pancras",id:"940GZZLUKSX", lat:51.5309, lng:-0.1233, lines:["northern","piccadilly","victoria","circle","metropolitan","hammersmith-city"] },
+  { name:"King's Cross St. Pancras",id:"940GZZLUKSX", lat:51.5308, lng:-0.1225, lines:["northern","piccadilly","victoria","circle","metropolitan","hammersmith-city"] },
   { name:"Euston (NR)",             id:"940GZZLUEUT", lat:51.5282, lng:-0.1330, lines:["northern"] },
   { name:"Camden Town",             id:"940GZZLUCTN", lat:51.5392, lng:-0.1426, lines:["northern"] },
   { name:"Chalk Farm",              id:"940GZZLUCKF", lat:51.5446, lng:-0.1538, lines:["northern"] },
@@ -738,7 +744,6 @@ const TUBE_STATIONS = [
   { name:"Turnpike Lane",           id:"940GZZLUTPL", lat:51.5904, lng:-0.1030, lines:["piccadilly"] },
   { name:"Manor House",             id:"940GZZLUMHS", lat:51.5705, lng:-0.0969, lines:["piccadilly"] },
   { name:"Caledonian Road",         id:"940GZZLUCRD", lat:51.5407, lng:-0.1189, lines:["piccadilly"] },
-  { name:"King's Cross St. Pancras", id:"940GZZLUKSX", lat:51.5309, lng:-0.1233, lines:["northern","piccadilly","victoria","circle","metropolitan","hammersmith-city"] },
   { name:"Russell Square",          id:"940GZZLURSQ", lat:51.5232, lng:-0.1239, lines:["piccadilly"] },
   { name:"Covent Garden",           id:"940GZZLUCGN", lat:51.5129, lng:-0.1243, lines:["piccadilly"] },
   { name:"Leicester Square",        id:"940GZZLULSQ", lat:51.5113, lng:-0.1281, lines:["piccadilly","northern"] },
@@ -798,7 +803,7 @@ const TUBE_STATIONS = [
   { name:"Bayswater",               id:"940GZZLUBWR", lat:51.5122, lng:-0.1879, lines:["circle","district"] },
   { name:"Great Portland Street",   id:"940GZZLUGPS", lat:51.5240, lng:-0.1443, lines:["circle","metropolitan","hammersmith-city"] },
   { name:"Euston Square",           id:"940GZZLUESQ", lat:51.5260, lng:-0.1366, lines:["circle","metropolitan","hammersmith-city"] },
-  { name:"St. Pancras Int'l",       id:"910GSTPNCRS", lat:51.5309, lng:-0.1233, lines:["circle","metropolitan","hammersmith-city"] },
+  { name:"St. Pancras Int'l",       id:"910GSTPNCRS", lat:51.5322, lng:-0.1265, lines:["circle","metropolitan","hammersmith-city"] },
   { name:"Angel (Islington)",       id:"940GZZLUAGL", lat:51.5326, lng:-0.1059, lines:["northern"] },
   { name:"Harrow-on-the-Hill",      id:"940GZZLUHOH", lat:51.5789, lng:-0.3355, lines:["metropolitan"] },
   { name:"Watford",                 id:"940GZZLUWAT", lat:51.6573, lng:-0.4176, lines:["metropolitan"] },
@@ -885,13 +890,21 @@ function toggleTube(btn) {
   btn.classList.toggle('on', tubeVisible);
   btn.textContent = tubeVisible ? 'Hide Tube' : 'Tube Stations';
   if (tubeVisible) {
+    // Show markers immediately with hardcoded coords — don't wait for API
     addTubeMarkers();
-    // Pre-load all line geometry silently in background (hidden until station clicked)
     loadAllLinesHidden();
+    // Then quietly enrich coords in background and redraw if successful
+    enrichStationCoords().then(enriched => {
+      if (enriched && tubeVisible) {
+        removeTubeMarkers();
+        addTubeMarkers();
+      }
+    });
   } else {
     removeTubeMarkers();
     removeAllLines();
     closeArrivals();
+    stopTrainDots();
   }
 }
 
@@ -900,9 +913,38 @@ function removeTubeMarkers() {
   tubeMarkers = [];
 }
 
+// Cache of TfL-verified coordinates keyed by NaPTAN id
+const verifiedCoords = {};
+
+async function enrichStationCoords() {
+  try {
+    // Fetch each line's stop points — more reliable than the mode endpoint
+    const lines = ['bakerloo','central','jubilee','northern','piccadilly',
+                   'victoria','circle','district','metropolitan','hammersmith-city',
+                   'elizabeth','dlr','overground','waterloo-city'];
+    for (const line of lines) {
+      const url  = TFL(`/Line/${line}/StopPoints`);
+      const res  = await proxyFetch(url);
+      const data = await res.json();
+      if (!Array.isArray(data)) continue;
+      data.forEach(s => {
+        if (s.id && s.lat && s.lon) verifiedCoords[s.id] = [s.lon, s.lat];
+      });
+    }
+    return Object.keys(verifiedCoords).length > 0;
+  } catch(e) {
+    return false;
+  }
+}
+
 function addTubeMarkers() {
   removeTubeMarkers();
   UNIQUE_STATIONS.forEach(st => {
+    // Use TfL-verified coords if available, otherwise fall back to our hardcoded ones
+    const coords = verifiedCoords[st.id];
+    const lng = coords ? coords[0] : st.lng;
+    const lat = coords ? coords[1] : st.lat;
+
     const primaryLine = st.lines[0];
     const color = LINE_COLORS[primaryLine] || '#888';
     const el = document.createElement('div');
@@ -914,7 +956,7 @@ function addTubeMarkers() {
       openArrivals(st);
     });
     const marker = new maplibregl.Marker({ element: el })
-      .setLngLat([st.lng, st.lat])
+      .setLngLat([lng, lat])
       .addTo(map);
     tubeMarkers.push(marker);
   });
@@ -924,6 +966,10 @@ function addTubeMarkers() {
 const TFL_LINES = ['bakerloo','central','circle','district','hammersmith-city',
   'jubilee','metropolitan','northern','piccadilly','victoria','waterloo-city',
   'elizabeth','dlr','overground'];
+
+// Store ordered stop coords per line branch for train position interpolation
+// lineStops[lineId] = array of branches, each branch = [{id, lon, lat}, ...]
+const lineStops = {};
 
 // Pre-fetch all lines in background but keep hidden
 async function loadAllLinesHidden() {
@@ -940,11 +986,17 @@ async function loadLine(lineId, hidden = false) {
     if (!data || !data.stopPointSequences) return;
 
     const allCoords = [];
+    const branches  = [];
     for (const seq of data.stopPointSequences) {
       const pts = seq.stopPoint ? seq.stopPoint.map(p => [p.lon, p.lat]) : [];
       if (pts.length >= 2) allCoords.push(pts);
+      // Store stops with their IDs for train interpolation
+      if (seq.stopPoint && seq.stopPoint.length >= 2) {
+        branches.push(seq.stopPoint.map(p => ({ id: p.stationId || p.id, lon: p.lon, lat: p.lat, name: p.name })));
+      }
     }
     if (!allCoords.length) return;
+    lineStops[lineId] = branches;
 
     const color = LINE_COLORS[lineId] || '#888';
     const srcId = `line-src-${lineId}`;
@@ -1013,6 +1065,235 @@ function hideAllLines() {
       map.setLayoutProperty(layId, 'visibility', 'none');
     }
   });
+  clearTrainDots();
+}
+
+// ── LIVE TRAIN POSITIONS ──────────────────────────────────────────────────────
+let trainDotsInterval = null;
+let activeTrainLines  = [];
+
+async function startTrainDots(lines) {
+  activeTrainLines = lines;
+  clearTrainDots();
+  await refreshTrainDots();
+  trainDotsInterval = setInterval(refreshTrainDots, 30000);
+}
+
+function stopTrainDots() {
+  clearInterval(trainDotsInterval);
+  trainDotsInterval = null;
+  activeTrainLines  = [];
+  clearTrainDots();
+}
+
+function clearTrainDots() {
+  TFL_LINES.forEach(lineId => {
+    const srcId   = `trains-src-${lineId}`;
+    const layGlow = `trains-lyr-${lineId}-glow`;
+    const layMain = `trains-lyr-${lineId}`;
+    const layIcon = `trains-ico-${lineId}`;
+    // Remove all layers tied to this source, in reverse order
+    [layIcon, layMain, layGlow].forEach(id => {
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource(srcId)) map.removeSource(srcId);
+  });
+  // Also remove any stray popups
+  document.querySelectorAll('.maplibregl-popup').forEach(p => p.remove());
+}
+
+async function refreshTrainDots() {
+  for (const lineId of activeTrainLines) {
+    try {
+      const url  = TFL(`/Line/${lineId}/Arrivals`);
+      const res  = await proxyFetch(url);
+      const data = await res.json();
+      if (!Array.isArray(data)) continue;
+      plotTrainsForLine(lineId, data);
+    } catch(e) {}
+  }
+}
+
+// Register a train icon SVG as a map image for a given line colour
+function ensureTrainIcon(lineId, color) {
+  const iconId = `train-icon-${lineId}`;
+  if (map.hasImage(iconId)) return iconId;
+
+  // Draw a rounded rectangle (train body) with a directional chevron
+  const size = 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Body — rounded rect
+  const pad = 4;
+  ctx.beginPath();
+  ctx.roundRect(pad, pad + 4, size - pad * 2, size - pad * 2 - 8, 4);
+  ctx.fillStyle = color === '#000000' ? '#1a1a1a' : color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Direction arrow — upward chevron (map rotation handles actual direction)
+  ctx.beginPath();
+  ctx.moveTo(size / 2, pad + 1);
+  ctx.lineTo(size / 2 - 5, pad + 7);
+  ctx.lineTo(size / 2 + 5, pad + 7);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fill();
+
+  // Small white circle in centre
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2 + 2, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fill();
+
+  map.addImage(iconId, ctx.getImageData(0, 0, size, size));
+  return iconId;
+}
+
+function plotTrainsForLine(lineId, arrivals) {
+  const color    = LINE_COLORS[lineId] || '#888';
+  const srcId    = `trains-src-${lineId}`;
+  const layId    = `trains-lyr-${lineId}`;
+  const branches = lineStops[lineId] || [];
+
+  // Deduplicate by vehicleId — keep earliest arrival per vehicle
+  const vehicles = {};
+  arrivals.forEach(a => {
+    if (!a.vehicleId) return;
+    if (!vehicles[a.vehicleId] || a.timeToStation < vehicles[a.vehicleId].timeToStation) {
+      vehicles[a.vehicleId] = a;
+    }
+  });
+
+  const features = [];
+  Object.values(vehicles).forEach(train => {
+    const result = interpolateTrainPosition(train, branches);
+    if (!result) return;
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: result.pos },
+      properties: {
+        vehicleId:   train.vehicleId,
+        destination: train.destinationName || train.towards || '',
+        mins:        Math.max(0, Math.round(train.timeToStation / 60)),
+        platform:    train.platformName || '',
+        bearing:     result.bearing
+      }
+    });
+  });
+
+  const geojson = { type: 'FeatureCollection', features };
+
+  if (map.getSource(srcId)) {
+    map.getSource(srcId).setData(geojson);
+    return;
+  }
+
+  // First time — create source + layers
+  map.addSource(srcId, { type: 'geojson', data: geojson });
+
+  // Soft halo — small, no blur, just a slightly larger tinted circle
+  map.addLayer({
+    id: layId + '-glow',
+    type: 'circle',
+    source: srcId,
+    paint: {
+      'circle-radius': ['interpolate',['linear'],['zoom'], 9,7, 12,11, 15,16],
+      'circle-color': color,
+      'circle-opacity': 0.18,
+      'circle-blur': 0.6
+    }
+  });
+
+  // Train body — diamond shape via rotated square symbol
+  const iconId = ensureTrainIcon(lineId, color);
+  map.addLayer({
+    id: layId,
+    type: 'symbol',
+    source: srcId,
+    layout: {
+      'icon-image': iconId,
+      'icon-size': ['interpolate',['linear'],['zoom'], 9,0.45, 12,0.65, 15,0.9],
+      'icon-allow-overlap': true,
+      'icon-rotation-alignment': 'map',
+      'icon-rotate': ['get', 'bearing'],
+      'text-field': '',
+    },
+    paint: {
+      'icon-opacity': 1
+    }
+  });
+
+  // Hover popup
+  map.on('mouseenter', layId, e => {
+    map.getCanvas().style.cursor = 'pointer';
+    const p = e.features[0].properties;
+    new maplibregl.Popup({ closeButton: false, offset: 14, className: 'train-popup' })
+      .setLngLat(e.features[0].geometry.coordinates)
+      .setHTML(`
+        <div style="font-family:system-ui,sans-serif;font-size:12px;padding:2px">
+          <div style="font-weight:600;margin-bottom:2px">${p.destination || 'Unknown destination'}</div>
+          <div style="opacity:0.7">${p.mins === 0 ? 'At station' : `${p.mins} min${p.mins !== 1 ? 's' : ''}`}</div>
+          ${p.platform ? `<div style="opacity:0.5;font-size:10px;margin-top:2px">${p.platform}</div>` : ''}
+        </div>`)
+      .addTo(map);
+  });
+  map.on('mouseleave', layId, () => {
+    map.getCanvas().style.cursor = '';
+    document.querySelectorAll('.maplibregl-popup').forEach(p => p.remove());
+  });
+}
+
+// Interpolate a train's map position between two stations
+// Returns { pos: [lon, lat], bearing: degrees } or null
+function interpolateTrainPosition(train, branches) {
+  const nextId     = train.naptanId;
+  const timeToNext = train.timeToStation || 0;
+
+  for (const branch of branches) {
+    const nextIdx = branch.findIndex(s =>
+      s.id === nextId ||
+      s.id === nextId.replace('940GZZLU','').replace('910G','') ||
+      nextId.includes(s.id)
+    );
+    if (nextIdx < 0) continue;
+
+    if (timeToNext <= 20 || nextIdx === 0) {
+      const bearing = nextIdx > 0
+        ? calcBearing(branch[nextIdx - 1], branch[nextIdx])
+        : (nextIdx < branch.length - 1 ? calcBearing(branch[nextIdx], branch[nextIdx + 1]) : 0);
+      return { pos: [branch[nextIdx].lon, branch[nextIdx].lat], bearing };
+    }
+
+    const prevIdx = nextIdx - 1;
+    if (prevIdx < 0) return { pos: [branch[nextIdx].lon, branch[nextIdx].lat], bearing: 0 };
+
+    const prev = branch[prevIdx];
+    const next = branch[nextIdx];
+
+    const avgTravelTime = 90;
+    const progress = Math.max(0, Math.min(1, 1 - (timeToNext / avgTravelTime)));
+
+    const lon     = prev.lon + (next.lon - prev.lon) * progress;
+    const lat     = prev.lat + (next.lat - prev.lat) * progress;
+    const bearing = calcBearing(prev, next);
+    return { pos: [lon, lat], bearing };
+  }
+  return null;
+}
+
+// Calculate compass bearing from point a to point b
+function calcBearing(a, b) {
+  const dLon = (b.lon - a.lon) * Math.PI / 180;
+  const lat1 = a.lat * Math.PI / 180;
+  const lat2 = b.lat * Math.PI / 180;
+  const y    = Math.sin(dLon) * Math.cos(lat2);
+  const x    = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
 }
 
 function removeAllLines() {
@@ -1068,6 +1349,7 @@ function openArrivals(station) {
   document.getElementById('arrivals-list').innerHTML = '';
 
   if (tubeVisible) showStationLines(uniqueLines);
+  startTrainDots(uniqueLines);
 
   fetchArrivals(station);
   arrivalsInterval = setInterval(() => fetchArrivals(station), 30000);
@@ -1164,6 +1446,7 @@ function closeArrivals() {
   document.getElementById('arrivals-panel').classList.remove('open');
   if (arrivalsInterval) { clearInterval(arrivalsInterval); arrivalsInterval = null; }
   if (tubeVisible) hideAllLines();
+  stopTrainDots();
 }
 
 // ── PANEL DRAG TO RESIZE ──────────────────────────────────────────────────────
