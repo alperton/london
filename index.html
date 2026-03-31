@@ -138,15 +138,27 @@
     z-index: 50;
     transform: translateY(100%);
     transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
-    max-height: 52vh;
+    height: 52vh;
+    max-height: 85vh;
+    min-height: 120px;
     overflow: hidden;
     display: flex; flex-direction: column;
   }
   .panel.open { transform: translateY(0); }
+  .panel.dragging { transition: none; }
 
   .panel-handle {
     width: 36px; height: 4px; background: rgba(255,255,255,0.2);
     border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+    cursor: ns-resize;
+    transition: background 0.15s;
+  }
+  .panel-handle:hover { background: rgba(255,255,255,0.5); }
+
+  /* Invisible hit area above handle for easier grabbing */
+  .panel-handle-wrap {
+    padding: 8px 0 4px; cursor: ns-resize; flex-shrink: 0;
+    display: flex; justify-content: center; align-items: center;
   }
   .panel-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -382,7 +394,9 @@
 
 <!-- ARRIVALS PANEL -->
 <div class="panel" id="arrivals-panel">
-  <div class="panel-handle"></div>
+  <div class="panel-handle-wrap" id="panel-handle-wrap">
+    <div class="panel-handle"></div>
+  </div>
   <div class="panel-head">
     <div class="panel-title" id="panel-station-name">Station <span>Arrivals</span></div>
     <div class="panel-close" onclick="closeArrivals()">×</div>
@@ -1151,6 +1165,44 @@ function closeArrivals() {
   if (arrivalsInterval) { clearInterval(arrivalsInterval); arrivalsInterval = null; }
   if (tubeVisible) hideAllLines();
 }
+
+// ── PANEL DRAG TO RESIZE ──────────────────────────────────────────────────────
+(function() {
+  const panel  = document.getElementById('arrivals-panel');
+  const handle = document.getElementById('panel-handle-wrap');
+  let dragging = false;
+  let startY   = 0;
+  let startH   = 0;
+
+  function onStart(e) {
+    dragging = true;
+    startY   = e.touches ? e.touches[0].clientY : e.clientY;
+    startH   = panel.offsetHeight;
+    panel.classList.add('dragging');
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const y     = e.touches ? e.touches[0].clientY : e.clientY;
+    const delta = startY - y; // drag up = positive = bigger
+    const newH  = Math.min(Math.max(startH + delta, 120), window.innerHeight * 0.85);
+    panel.style.height = newH + 'px';
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    panel.classList.remove('dragging');
+  }
+
+  handle.addEventListener('mousedown',  onStart, { passive: false });
+  handle.addEventListener('touchstart', onStart, { passive: false });
+  window.addEventListener('mousemove',  onMove);
+  window.addEventListener('touchmove',  onMove, { passive: true });
+  window.addEventListener('mouseup',   onEnd);
+  window.addEventListener('touchend',  onEnd);
+})();
 
 // ── JOURNEY PLANNER ───────────────────────────────────────────────────────────
 let jpOpen = false;
