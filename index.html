@@ -653,7 +653,7 @@ const TUBE_STATIONS = [
   { name:"Holborn",                 id:"940GZZLUHBN", lat:51.5174, lng:-0.1200, lines:["central","piccadilly"] },
   { name:"Chancery Lane",           id:"940GZZLUCHL", lat:51.5182, lng:-0.1116, lines:["central"] },
   { name:"St. Paul's",              id:"940GZZLUSPU", lat:51.5148, lng:-0.0976, lines:["central"] },
-  { name:"Bank",                    id:"940GZZLUBKF", lat:51.5133, lng:-0.0886, lines:["central","northern","waterloo-city","dlr"] },
+  { name:"Bank",                    id:"940GZZLUBKF", lat:51.5133, lng:-0.0890, lines:["central","northern","waterloo-city","dlr"] },
   { name:"Liverpool Street",        id:"940GZZLULVT", lat:51.5178, lng:-0.0823, lines:["central","circle","metropolitan","hammersmith-city","elizabeth"] },
   { name:"Bethnal Green",           id:"940GZZLUBEG", lat:51.5270, lng:-0.0549, lines:["central"] },
   { name:"Mile End",                id:"940GZZLUMLE", lat:51.5250, lng:-0.0332, lines:["central","district","hammersmith-city"] },
@@ -917,24 +917,66 @@ function removeTubeMarkers() {
 const verifiedCoords = {};
 
 async function enrichStationCoords() {
-  try {
-    // Fetch each line's stop points — more reliable than the mode endpoint
-    const lines = ['bakerloo','central','jubilee','northern','piccadilly',
-                   'victoria','circle','district','metropolitan','hammersmith-city',
-                   'elizabeth','dlr','overground','waterloo-city'];
-    for (const line of lines) {
+  const lines = ['bakerloo','central','jubilee','northern','piccadilly',
+                 'victoria','circle','district','metropolitan','hammersmith-city',
+                 'elizabeth','dlr','overground','waterloo-city'];
+
+  // Fire all requests in parallel — individual failures don't block others
+  const results = await Promise.allSettled(
+    lines.map(async line => {
       const url  = TFL(`/Line/${line}/StopPoints`);
       const res  = await proxyFetch(url);
       const data = await res.json();
-      if (!Array.isArray(data)) continue;
-      data.forEach(s => {
-        if (s.id && s.lat && s.lon) verifiedCoords[s.id] = [s.lon, s.lat];
+      return { line, data };
+    })
+  );
+
+  let count = 0;
+  results.forEach(result => {
+    if (result.status !== 'fulfilled') return;
+    const data = result.value.data;
+    if (!Array.isArray(data)) return;
+    data.forEach(s => {
+      const lat = s.lat ?? s.latitude;
+      const lon = s.lon ?? s.longitude;
+      if (s.id && lat && lon) {
+        verifiedCoords[s.id] = [lon, lat];
+        count++;
+      }
+      // Hub stations nest children with more precise coords
+      (s.children || []).forEach(c => {
+        const clat = c.lat ?? c.latitude;
+        const clon = c.lon ?? c.longitude;
+        if (c.id && clat && clon) {
+          verifiedCoords[c.id] = [clon, clat];
+          count++;
+        }
       });
+    });
+  });
+
+  console.log(`[TfL] Enriched ${count} station coordinates from API`);
+
+  // If line-by-line calls failed, try fetching all stations by NaPTAN IDs directly
+  if (count === 0) {
+    try {
+      const ids = UNIQUE_STATIONS.map(s => s.id).join(',');
+      const url  = TFL(`/StopPoint/${ids}`);
+      const res  = await proxyFetch(url);
+      const data = await res.json();
+      const stops = Array.isArray(data) ? data : (data.stopPoints || [data]);
+      stops.forEach(s => {
+        const lat = s.lat ?? s.latitude;
+        const lon = s.lon ?? s.longitude;
+        if (s.id && lat && lon) { verifiedCoords[s.id] = [lon, lat]; count++; }
+      });
+      console.log(`[TfL] Fallback enriched ${count} coordinates`);
+    } catch(e) {
+      console.warn('[TfL] Coordinate enrichment failed, using hardcoded values', e);
     }
-    return Object.keys(verifiedCoords).length > 0;
-  } catch(e) {
-    return false;
   }
+
+  return count > 0;
 }
 
 function addTubeMarkers() {
