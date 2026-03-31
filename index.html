@@ -572,10 +572,7 @@ function toggleTheme(btn) {
       Object.keys(lineStops).forEach(k => delete lineStops[k]);
       addTubeMarkers();
       loadAllLinesHidden();
-      enrichStationCoords().then(enriched => {
-        if (enriched && tubeVisible) { removeTubeMarkers(); addTubeMarkers(); }
-      });
-      // Restart train dots if active
+      enrichStationCoords();
       if (activeTrainLines.length) startTrainDots(activeTrainLines);
     }
   });
@@ -638,7 +635,7 @@ const TUBE_STATIONS = [
   { name:"Elephant & Castle",       id:"940GZZLUEAC", lat:51.4944, lng:-0.1001, lines:["bakerloo","northern"] },
   // CENTRAL
   { name:"Ealing Broadway",         id:"940GZZLUEBD", lat:51.5149, lng:-0.3014, lines:["central","district","elizabeth"] },
-  { name:"Ealing Common",           id:"940GZZLUECC", lat:51.5101, lng:-0.2877, lines:["central","district"] },
+  { name:"Ealing Common",           id:"940GZZLUECC", lat:51.5101, lng:-0.2877, lines:["district","piccadilly"] },
   { name:"North Acton",             id:"940GZZLUNAC", lat:51.5200, lng:-0.2632, lines:["central"] },
   { name:"East Acton",              id:"940GZZLUEAN", lat:51.5163, lng:-0.2491, lines:["central"] },
   { name:"White City",              id:"940GZZLUWCY", lat:51.5117, lng:-0.2240, lines:["central"] },
@@ -695,7 +692,7 @@ const TUBE_STATIONS = [
   { name:"Highbury & Islington",    id:"940GZZLUHBY", lat:51.5462, lng:-0.1039, lines:["victoria","overground"] },
   { name:"Finsbury Park",           id:"940GZZLUFPK", lat:51.5642, lng:-0.1065, lines:["victoria","piccadilly"] },
   { name:"Seven Sisters",           id:"940GZZLUSSS", lat:51.5831, lng:-0.0756, lines:["victoria"] },
-  { name:"Tottenham Hale",          id:"940GZZLUTOH", lat:51.5882, lng:-0.0597, lines:["victoria"] },
+  { name:"Tottenham Hale",          id:"940GZZLUTMH", lat:51.5882, lng:-0.0597, lines:["victoria"] },
   { name:"Blackhorse Road",         id:"940GZZLUBHR", lat:51.5868, lng:-0.0413, lines:["victoria","overground"] },
   { name:"Walthamstow Central",     id:"940GZZLUWWC", lat:51.5831, lng:-0.0197, lines:["victoria"] },
   // NORTHERN
@@ -769,7 +766,7 @@ const TUBE_STATIONS = [
   { name:"High Street Kensington",  id:"940GZZLUHSK", lat:51.5012, lng:-0.1922, lines:["circle","district"] },
   { name:"South Kensington",        id:"940GZZLUSKN", lat:51.4941, lng:-0.1738, lines:["circle","district","piccadilly"] },
   { name:"Sloane Square",           id:"940GZZLUSQS", lat:51.4924, lng:-0.1565, lines:["circle","district"] },
-  { name:"Tower Hill",              id:"940GZZLUTOH", lat:51.5098, lng:-0.0766, lines:["circle","district"] },
+  { name:"Tower Hill",              id:"940GZZLUTWH", lat:51.5098, lng:-0.0767, lines:["circle","district"] },
   { name:"Aldgate East",            id:"940GZZLUADE", lat:51.5152, lng:-0.0727, lines:["district","hammersmith-city"] },
   { name:"Whitechapel",             id:"940GZZLUWEH", lat:51.5196, lng:-0.0600, lines:["district","hammersmith-city","elizabeth"] },
   { name:"Stepney Green",           id:"940GZZLUSPG", lat:51.5220, lng:-0.0459, lines:["district","hammersmith-city"] },
@@ -890,16 +887,11 @@ function toggleTube(btn) {
   btn.classList.toggle('on', tubeVisible);
   btn.textContent = tubeVisible ? 'Hide Tube' : 'Tube Stations';
   if (tubeVisible) {
-    // Show markers immediately with hardcoded coords — don't wait for API
+    // Show markers immediately with hardcoded coords
     addTubeMarkers();
     loadAllLinesHidden();
-    // Then quietly enrich coords in background and redraw if successful
-    enrichStationCoords().then(enriched => {
-      if (enriched && tubeVisible) {
-        removeTubeMarkers();
-        addTubeMarkers();
-      }
-    });
+    // Quietly enrich coord cache in background — used if tube is toggled off/on again
+    enrichStationCoords();
   } else {
     removeTubeMarkers();
     removeAllLines();
@@ -1156,40 +1148,49 @@ async function refreshTrainDots() {
   }
 }
 
-// Register a train icon SVG as a map image for a given line colour
+// Register a train icon as a map image for a given line colour
 function ensureTrainIcon(lineId, color) {
   const iconId = `train-icon-${lineId}`;
   if (map.hasImage(iconId)) return iconId;
 
-  // Draw a rounded rectangle (train body) with a directional chevron
   const size = 32;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // Body — rounded rect
-  const pad = 4;
+  // Draw rounded rect manually (roundRect not supported in all browsers)
+  const x = 4, y = 8, w = size - 8, h = size - 16, r = 4;
+  const bodyColor = color === '#000000' ? '#222' : color;
   ctx.beginPath();
-  ctx.roundRect(pad, pad + 4, size - pad * 2, size - pad * 2 - 8, 4);
-  ctx.fillStyle = color === '#000000' ? '#1a1a1a' : color;
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  ctx.fillStyle = bodyColor;
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.9)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Direction arrow — upward chevron (map rotation handles actual direction)
+  // Direction arrow at top — upward triangle
   ctx.beginPath();
-  ctx.moveTo(size / 2, pad + 1);
-  ctx.lineTo(size / 2 - 5, pad + 7);
-  ctx.lineTo(size / 2 + 5, pad + 7);
+  ctx.moveTo(size / 2, 2);
+  ctx.lineTo(size / 2 - 5, 9);
+  ctx.lineTo(size / 2 + 5, 9);
   ctx.closePath();
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.fill();
 
-  // Small white circle in centre
+  // Centre dot
   ctx.beginPath();
   ctx.arc(size / 2, size / 2 + 2, 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.fill();
 
   map.addImage(iconId, ctx.getImageData(0, 0, size, size));
