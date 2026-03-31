@@ -1060,30 +1060,56 @@ function openArrivals(station) {
 }
 
 async function fetchArrivals(station) {
+  document.getElementById('arrivals-loading').style.display = 'block';
+  document.getElementById('arrivals-list').innerHTML = '';
+
+  // Try 1 — by NaPTAN ID (fastest, most accurate)
+  let arrivals = await tryFetchArrivals(`/StopPoint/${station.id}/Arrivals`);
+
+  // Try 2 — if empty, search for the station by name and try each result's ID
+  if (!arrivals) {
+    const searchUrl = TFL(`/StopPoint/Search/${encodeURIComponent(station.name)}?modes=tube,dlr,overground,elizabeth-line&maxResults=5`);
+    try {
+      const res  = await proxyFetch(searchUrl);
+      const data = await res.json();
+      const matches = data.matches || [];
+      for (const match of matches) {
+        if (match.id && match.id !== station.id) {
+          arrivals = await tryFetchArrivals(`/StopPoint/${match.id}/Arrivals`);
+          if (arrivals) break;
+        }
+      }
+    } catch(e) {}
+  }
+
+  document.getElementById('arrivals-loading').style.display = 'none';
+
+  if (!arrivals) {
+    // Work out the best message based on time of day
+    const hour = new Date().getHours();
+    const isLateNight = hour >= 1 && hour < 5;
+    document.getElementById('arrivals-list').innerHTML = isLateNight
+      ? '<div class="arrival-loading">No service — trains not running at this time</div>'
+      : '<div class="arrival-loading">No live data for this station — may be outside prediction coverage or no trains running</div>';
+    return;
+  }
+
+  arrivalsData = arrivals
+    .filter(a => a.timeToStation !== undefined)
+    .sort((a, b) => a.timeToStation - b.timeToStation);
+
+  renderArrivals();
+}
+
+// Helper — fetch arrivals for a given path, return array or null
+async function tryFetchArrivals(path) {
   try {
-    const url = TFL(`/StopPoint/${station.id}/Arrivals`);
-    const res = await proxyFetch(url);
+    const res  = await proxyFetch(TFL(path));
     const data = await res.json();
-
-    document.getElementById('arrivals-loading').style.display = 'none';
-
-    if (!data || data.length === 0) {
-      document.getElementById('arrivals-list').innerHTML =
-        '<div class="arrival-loading">No arrivals data right now</div>';
-      return;
-    }
-
-    // Store full sorted list
-    arrivalsData = data
-      .filter(a => a.timeToStation !== undefined)
-      .sort((a, b) => a.timeToStation - b.timeToStation);
-
-    renderArrivals();
-
+    if (Array.isArray(data) && data.length > 0) return data;
+    return null;
   } catch(e) {
-    document.getElementById('arrivals-loading').style.display = 'none';
-    document.getElementById('arrivals-list').innerHTML =
-      '<div class="arrival-loading">Could not load live data</div>';
+    return null;
   }
 }
 
@@ -1095,8 +1121,9 @@ function renderArrivals() {
   const shown = filtered.slice(0, activeLineFilter ? 12 : 8);
 
   if (shown.length === 0) {
-    document.getElementById('arrivals-list').innerHTML =
-      '<div class="arrival-loading">No arrivals on this line right now</div>';
+    document.getElementById('arrivals-list').innerHTML = activeLineFilter
+      ? '<div class="arrival-loading">No trains on this line right now — try another line or check back shortly</div>'
+      : '<div class="arrival-loading">No trains predicted right now</div>';
     return;
   }
 
