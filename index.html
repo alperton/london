@@ -567,27 +567,11 @@ const TFL = (path) => {
   const base = 'https://api.tfl.gov.uk' + path;
   return TFL_KEY ? base + (path.includes('?') ? '&' : '?') + 'app_key=' + TFL_KEY : base;
 };
-// Robust CORS proxy fetch — tries multiple proxies with proper timeout
-function fetchWithTimeout(url, ms = 7000) {
-  return Promise.race([
-    fetch(url),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-  ]);
-}
+// Cloudflare Worker proxy — fast, no CORS issues
+const WORKER = 'https://tfl-proxy.alp-ozen.workers.dev';
 async function proxyFetch(url) {
-  const proxies = [
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-  ];
-  for (const proxy of proxies) {
-    try {
-      const res = await fetchWithTimeout(proxy(url), 6000);
-      if (res.ok) return res;
-    } catch(e) { continue; }
-  }
-  // Direct as last resort (works if CORS ever gets enabled)
-  return fetchWithTimeout(url, 8000);
+  const tflPath = url.replace('https://api.tfl.gov.uk', '').replace(/&?app_key=[^&]*/,'');
+  return fetch(`${WORKER}?path=${encodeURIComponent(tflPath)}`);
 }
 
 // ── LINE COLOUR MAP ───────────────────────────────────────────────────────────
